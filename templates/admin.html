@@ -1,0 +1,613 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        transition: all 0.2s ease;
+        border: 1px solid #f0f0f0;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #2C3E50;
+        letter-spacing: -1px;
+        line-height: 1;
+    }
+    .stat-label {
+        color: #95A5A6;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
+        margin-top: 0.5rem;
+    }
+    .stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        margin-bottom: 0.75rem;
+    }
+    .age-group-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        border: 1px solid #f0f0f0;
+    }
+    .age-bar-container {
+        margin-bottom: 1rem;
+    }
+    .age-bar-label {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        font-size: 0.85rem;
+    }
+    .age-bar-track {
+        height: 8px;
+        background: #ECF0F1;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .age-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #3498DB, #2980B9);
+        border-radius: 4px;
+        transition: width 0.6s ease;
+    }
+    .filter-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        border: 1px solid #f0f0f0;
+    }
+    .table-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        border: 1px solid #f0f0f0;
+        overflow: hidden;
+    }
+    .table {
+        margin-bottom: 0;
+        font-size: 0.9rem;
+    }
+    .table thead th {
+        background: #F8F9FA;
+        border-bottom: 2px solid #E9ECEF;
+        font-weight: 600;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #7F8C8D;
+        padding: 0.75rem 1rem;
+    }
+    .table tbody td {
+        padding: 0.75rem 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #F0F0F0;
+    }
+    .table-row-clickable {
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+    .table-row-clickable:hover {
+        background: #F8F9FA !important;
+    }
+    .badge-church {
+        background: #EBF5FB;
+        color: #2E86C1;
+        padding: 0.3rem 0.7rem;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    .code-badge {
+        background: #F0F0F0;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.8rem;
+        color: #2C3E50;
+        font-weight: 600;
+    }
+    .btn-icon {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.8rem;
+        border-radius: 6px;
+    }
+    .modal-content {
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+    .modal-header {
+        border-bottom: 1px solid #F0F0F0;
+        padding: 1.25rem;
+    }
+    .modal-body {
+        padding: 1.25rem;
+    }
+    .detail-row {
+        margin-bottom: 1rem;
+    }
+    .detail-label {
+        color: #95A5A6;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+    }
+    .detail-value {
+        color: #2C3E50;
+        font-weight: 500;
+    }
+    .empty-state {
+        padding: 3rem 1.5rem;
+        text-align: center;
+        color: #95A5A6;
+    }
+    .section-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #2C3E50;
+        margin-bottom: 0.75rem;
+    }
+    .church-list-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #F0F0F0;
+    }
+    .church-list-item:last-child {
+        border-bottom: none;
+    }
+    
+    @media (max-width: 768px) {
+        .table {
+            font-size: 0.8rem;
+        }
+        
+        .table thead th {
+            font-size: 0.75rem;
+            padding: 0.5rem 0.75rem;
+        }
+        
+        .table tbody td {
+            padding: 0.5rem 0.75rem;
+        }
+        
+        .btn-icon {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .stat-number {
+            font-size: 1.5rem;
+        }
+        
+        .stat-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            font-size: 0.7rem;
+        }
+        
+        .age-group-section, .filter-section, .stat-card {
+            padding: 1rem;
+            border-radius: 10px;
+        }
+        
+        .table {
+            font-size: 0.75rem;
+        }
+        
+        .badge-church, .code-badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+        }
+        
+        .modal-content {
+            border-radius: 12px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Statistics Cards -->
+<div class="row g-2 g-md-3 mb-3 mb-md-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #EBF5FB;">
+                <span style="color: #3498DB;">📋</span>
+            </div>
+            <div class="stat-number">{{ total }}</div>
+            <div class="stat-label">Total</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #E8F8F5;">
+                <span style="color: #27AE60;">📅</span>
+            </div>
+            <div class="stat-number">{{ today }}</div>
+            <div class="stat-label">Today</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #FEF9E7;">
+                <span style="color: #F39C12;">⛪</span>
+            </div>
+            <div class="stat-number">{{ churches|length }}</div>
+            <div class="stat-label">Churches</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: #F5EEF8;">
+                <span style="color: #8E44AD;">📊</span>
+            </div>
+            <div class="stat-number">
+                {% if registrations %}
+                    {{ (registrations|map(attribute='age')|sum / registrations|length)|round(1) }}
+                {% else %}
+                    0
+                {% endif %}
+            </div>
+            <div class="stat-label">Avg Age</div>
+        </div>
+    </div>
+</div>
+
+<!-- Church Management -->
+<div class="row g-3 mb-3 mb-md-4">
+    <div class="col-12 col-md-4">
+        <div class="filter-section">
+            <h6 class="section-title">Add New Church</h6>
+            <form method="POST" action="{{ url_for('add_church') }}">
+                <div class="mb-3">
+                    <label class="form-label small text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Church Name</label>
+                    <input type="text" class="form-control" name="church_name" placeholder="Enter church name" required style="border-radius: 8px;">
+                </div>
+                <button type="submit" class="btn btn-primary w-100" style="border-radius: 8px;">Add Church</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="col-12 col-md-8">
+        <div class="table-container">
+            <div class="p-3 border-bottom" style="border-color: #F0F0F0 !important;">
+                <h6 class="section-title mb-0">Manage Churches</h6>
+            </div>
+            <div style="max-height: 250px; overflow-y: auto;">
+                {% for church in all_churches %}
+                <div class="church-list-item">
+                    <span style="font-weight: 500;">{{ church.name }}</span>
+                    <a href="{{ url_for('delete_church', id=church.id) }}" class="btn btn-outline-danger btn-icon" onclick="return confirm('Delete this church?')">Delete</a>
+                </div>
+                {% endfor %}
+                {% if not all_churches %}
+                <div class="empty-state" style="padding: 2rem;">
+                    <p style="font-size: 0.9rem; margin-bottom: 0;">No churches added yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Age Group Distribution -->
+<div class="row g-3 mb-3 mb-md-4">
+    <div class="col-12 col-md-5">
+        <div class="age-group-section">
+            <h6 class="section-title">Age Distribution</h6>
+            {% for group, count in age_groups.items() %}
+            <div class="age-bar-container">
+                <div class="age-bar-label">
+                    <span style="color: #2C3E50; font-weight: 500;">{{ group }} years</span>
+                    <span style="color: #95A5A6;">{{ count }} ({{ ((count / total * 100)|round(1) if total > 0 else 0) }}%)</span>
+                </div>
+                <div class="age-bar-track">
+                    <div class="age-bar-fill" style="width: {{ (count / total * 100) if total > 0 else 0 }}%"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Church Breakdown -->
+    <div class="col-12 col-md-7">
+        <div class="age-group-section">
+            <h6 class="section-title">Church Breakdown</h6>
+            {% set church_counts = {} %}
+            {% for reg in registrations %}
+                {% if reg.church_name in church_counts %}
+                    {% set _ = church_counts.update({reg.church_name: church_counts[reg.church_name] + 1}) %}
+                {% else %}
+                    {% set _ = church_counts.update({reg.church_name: 1}) %}
+                {% endif %}
+            {% endfor %}
+            {% for church, count in church_counts.items() %}
+            <div class="age-bar-container">
+                <div class="age-bar-label">
+                    <span style="color: #2C3E50; font-weight: 500;">{{ church }}</span>
+                    <span style="color: #95A5A6;">{{ count }}</span>
+                </div>
+                <div class="age-bar-track">
+                    <div class="age-bar-fill" style="width: {{ (count / total * 100) if total > 0 else 0 }}%; background: linear-gradient(90deg, #27AE60, #229954);"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Search & Filter -->
+<div class="filter-section mb-3 mb-md-4">
+    <form method="GET" action="{{ url_for('admin') }}">
+        <div class="row g-2 g-md-3 align-items-end">
+            <div class="col-12 col-md-4">
+                <label class="form-label small text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Search</label>
+                <input type="text" class="form-control" name="search" placeholder="Search..." value="{{ search }}" style="border-radius: 8px;">
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label small text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">Church</label>
+                <select class="form-select" name="church" style="border-radius: 8px;">
+                    <option value="">All Churches</option>
+                    {% for church in churches %}
+                        <option value="{{ church }}" {% if church_filter == church %}selected{% endif %}>{{ church }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">From</label>
+                <input type="date" class="form-control" name="date_from" value="{{ date_from }}" style="border-radius: 8px;">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">To</label>
+                <input type="date" class="form-control" name="date_to" value="{{ date_to }}" style="border-radius: 8px;">
+            </div>
+            <div class="col-12 col-md-1">
+                <button type="submit" class="btn btn-primary w-100" style="border-radius: 8px;">Filter</button>
+            </div>
+        </div>
+        {% if search or church_filter or date_from or date_to %}
+        <div class="mt-3">
+            <a href="{{ url_for('admin') }}" class="btn btn-sm btn-outline-secondary" style="border-radius: 6px;">Clear Filters</a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Registration Table -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+    <h6 class="mb-2 mb-md-0" style="color: #2C3E50; font-weight: 600;">Registrations <span class="text-muted" style="font-weight: 400;">({{ registrations|length }})</span></h6>
+    <a href="{{ url_for('export_excel') }}" class="btn btn-success btn-sm align-self-start align-self-md-center" style="border-radius: 8px; padding: 0.4rem 1rem;">Export to Excel</a>
+</div>
+
+{% if registrations %}
+<div class="table-container">
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Church</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reg in registrations %}
+                <tr class="table-row-clickable" onclick="showDetails({{ reg.id }})">
+                    <td><span class="code-badge">{{ reg.registration_code }}</span></td>
+                    <td style="font-weight: 500;">{{ reg.first_name }} {{ reg.middle_name or '' }} {{ reg.last_name }}</td>
+                    <td>{{ reg.age }}</td>
+                    <td><span class="badge-church">{{ reg.church_name }}</span></td>
+                    <td style="color: #7F8C8D; font-size: 0.85rem;">{{ reg.registration_date.strftime('%b %d, %Y') }}</td>
+                    <td>
+                        <button class="btn btn-outline-primary btn-icon me-1" onclick="event.stopPropagation(); editRegistration({{ reg.id }})">Edit</button>
+                        <a href="{{ url_for('delete_registration', id=reg.id) }}" class="btn btn-outline-danger btn-icon" onclick="event.stopPropagation(); return confirm('Delete this registration?')">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="table-container">
+    <div class="empty-state">
+        <p style="font-size: 1rem; margin-bottom: 0.5rem;">No registrations found</p>
+        <p style="font-size: 0.85rem;">Try adjusting your filters or wait for new registrations</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Registration Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" style="font-weight: 600;">Registration Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-row">
+                    <div class="detail-label">Registration Code</div>
+                    <div class="detail-value"><span class="code-badge" id="modalCode" style="font-size: 1rem;"></span></div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="detail-row">
+                            <div class="detail-label">Full Name</div>
+                            <div class="detail-value" id="modalName"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="detail-row">
+                            <div class="detail-label">Age</div>
+                            <div class="detail-value" id="modalAge"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Church</div>
+                    <div class="detail-value" id="modalChurch"></div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Birth Date</div>
+                    <div class="detail-value" id="modalBirthDate"></div>
+                </div>
+                <div class="detail-row" style="margin-bottom: 0;">
+                    <div class="detail-label">Registration Date</div>
+                    <div class="detail-value" id="modalRegDate"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Registration Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" style="font-weight: 600;">Edit Registration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editForm" method="POST">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="editFirstName" name="first_name" required style="border-radius: 8px;">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="editLastName" name="last_name" required style="border-radius: 8px;">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">Middle Name</label>
+                        <input type="text" class="form-control" id="editMiddleName" name="middle_name" style="border-radius: 8px;">
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">Birth Date</label>
+                        <input type="date" class="form-control" id="editBirthDate" name="birth_date" required style="border-radius: 8px;">
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">Church</label>
+                        <select class="form-select" id="editChurchId" name="church_id" style="border-radius: 8px;">
+                            <option value="">-- Select Church --</option>
+                            {% for church in all_churches %}
+                                <option value="{{ church.id }}">{{ church.name }}</option>
+                            {% endfor %}
+                            <option value="other">Other (Type manually)</option>
+                        </select>
+                    </div>
+                    <div class="mt-3" id="editOtherChurchDiv" style="display: none;">
+                        <label class="form-label">Enter Church Name</label>
+                        <input type="text" class="form-control" id="editChurchName" name="church_name" style="border-radius: 8px;">
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #F0F0F0;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="border-radius: 8px;">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showDetails(id) {
+    fetch(`/admin/registration/${id}`)
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('modalCode').textContent = data.registration_code;
+            document.getElementById('modalName').textContent = `${data.first_name} ${data.middle_name || ''} ${data.last_name}`.trim();
+            document.getElementById('modalAge').textContent = data.age;
+            document.getElementById('modalChurch').textContent = data.church_name;
+            document.getElementById('modalBirthDate').textContent = data.birth_date;
+            document.getElementById('modalRegDate').textContent = data.registration_date;
+            
+            new bootstrap.Modal(document.getElementById('detailsModal')).show();
+        });
+}
+
+function editRegistration(id) {
+    fetch(`/admin/registration/${id}`)
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('editId').value = data.id;
+            document.getElementById('editFirstName').value = data.first_name;
+            document.getElementById('editLastName').value = data.last_name;
+            document.getElementById('editMiddleName').value = data.middle_name || '';
+            document.getElementById('editBirthDate').value = data.birth_date;
+            
+            // Set church dropdown
+            let churchSelect = document.getElementById('editChurchId');
+            let found = false;
+            for (let option of churchSelect.options) {
+                if (option.text === data.church_name) {
+                    option.selected = true;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                churchSelect.value = 'other';
+                document.getElementById('editOtherChurchDiv').style.display = 'block';
+                document.getElementById('editChurchName').value = data.church_name;
+            } else {
+                document.getElementById('editOtherChurchDiv').style.display = 'none';
+            }
+            
+            document.getElementById('editForm').action = `/admin/registration/${data.id}/edit`;
+            
+            new bootstrap.Modal(document.getElementById('editModal')).show();
+        });
+}
+
+document.getElementById('editChurchId').addEventListener('change', function() {
+    const otherDiv = document.getElementById('editOtherChurchDiv');
+    if (this.value === 'other') {
+        otherDiv.style.display = 'block';
+        document.getElementById('editChurchName').required = true;
+    } else {
+        otherDiv.style.display = 'none';
+        document.getElementById('editChurchName').required = false;
+    }
+});
+</script>
+{% endblock %}

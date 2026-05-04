@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Registration Successful{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="alert alert-success border-0" style="background-color: #D4EDDA; color: #155724;">
+            <h4 class="alert-heading mb-2 mb-md-3">✓ Registration Successful</h4>
+            <p class="mb-0">Your registration has been completed successfully.</p>
+        </div>
+        
+        <div class="card">
+            <div class="card-body p-3 p-md-4">
+                <h5 class="card-title mb-3">Registration Details</h5>
+                
+                <div class="mb-3">
+                    <label class="text-muted small text-uppercase">Registration Code</label>
+                    <p class="h4" style="color: var(--accent-color); font-weight: 600;">{{ registration.registration_code }}</p>
+                </div>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-12 col-md-6 mb-3">
+                        <label class="text-muted small text-uppercase">Name</label>
+                        <p class="mb-2">{{ registration.first_name }} {{ registration.middle_name }} {{ registration.last_name }}</p>
+                    </div>
+                    <div class="col-12 col-md-6 mb-3">
+                        <label class="text-muted small text-uppercase">Age</label>
+                        <p class="mb-2">{{ registration.age }}</p>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="text-muted small text-uppercase">Church</label>
+                    <p class="mb-0">{{ registration.church_name }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-3 mt-md-4 d-grid gap-2 col-12 col-sm-8 col-md-6 mx-auto">
+            <a href="{{ url_for('register') }}" class="btn btn-primary">Register Another</a>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Home</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
