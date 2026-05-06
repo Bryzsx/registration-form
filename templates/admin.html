@@ -236,11 +236,9 @@
                                     <button class="btn btn-light action-btn edit-btn" data-reg-id="{{ reg.id }}" onclick="event.stopPropagation(); editRegistration('{{ reg.id }}')">
                                         <i class="bi bi-pencil text-primary"></i>
                                     </button>
-                                    <form action="/admin/registration/{{ reg.id }}/delete" method="post" style="display:inline;" onsubmit="return confirmDelete(event, '{{ reg.registration_code }}', '{{ reg.first_name }} {{ reg.last_name }}')">
-                                        <button type="submit" class="btn btn-light action-btn">
-                                            <i class="bi bi-trash text-danger"></i>
-                                        </button>
-                                    </form>
+                                    <button class="btn btn-light action-btn" onclick="event.stopPropagation(); showDeleteModal('{{ reg.id }}', '{{ reg.registration_code }}', '{{ reg.first_name }} {{ reg.last_name }}')">
+                                        <i class="bi bi-trash text-danger"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -379,18 +377,40 @@
                 </div>
             </form>
         </div>
+        </div>
+    
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0" style="border-radius: 20px;">
+                <div class="modal-body p-4 text-center">
+                    <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 1.5rem; color: #ef4444;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Delete Record?</h5>
+                    <p class="text-muted small mb-2">Are you sure you want to delete:</p>
+                    <p class="fw-bold small mb-4" id="deleteRegName"></p>
+                    <p class="text-muted small mb-4">This action cannot be undone.</p>
+                    <div class="d-grid gap-2">
+                        <form id="deleteForm" method="post" action="">
+                            <button type="submit" class="btn btn-danger py-2 w-100" style="border-radius: 12px;">Delete Forever</button>
+                        </form>
+                        <button type="button" class="btn btn-light py-2" data-bs-dismiss="modal" style="border-radius: 12px;">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script data-v="20260506-2300">
-function confirmDelete(event, code, name) {
-    event.preventDefault();
-    var form = event.target;
-    if (confirm('Delete ' + name + ' (' + code + ')?\n\nThis action cannot be undone.')) {
-        form.submit();
-    }
-    return false;
+<script data-v="20260507-0215">
+function showDeleteModal(id, code, name) {
+    document.getElementById('deleteRegName').textContent = name + ' (' + code + ')';
+    document.getElementById('deleteForm').action = '/admin/registration/' + id + '/delete';
+    var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
 }
 
 function toggleEditOtherChurch() {
