@@ -236,11 +236,9 @@
                                     <button class="btn btn-light action-btn edit-btn" data-reg-id="{{ reg.id }}" onclick="event.stopPropagation(); editRegistration('{{ reg.id }}')">
                                         <i class="bi bi-pencil text-primary"></i>
                                     </button>
-                                    <form action="/admin/registration/{{ reg.id }}/delete" method="post" style="display:inline;" onsubmit="return handleRegistrationDelete(event, this, '{{ reg.registration_code }}', '{{ reg.first_name }} {{ reg.last_name }}')">
-                                        <button type="submit" class="btn btn-light action-btn">
-                                            <i class="bi bi-trash text-danger"></i>
-                                        </button>
-                                    </form>
+                                    <a href="{{ url_for('delete_registration', id=reg.id) }}" class="btn btn-light action-btn p-0 d-inline-flex" onclick="return handleRegistrationDelete(event, this.href, '{{ reg.registration_code }}', '{{ reg.first_name }} {{ reg.last_name }}')">
+                                        <i class="bi bi-trash text-danger"></i>
+                                    </a>
                                 </div>
                             </td>
                         </tr>
@@ -385,7 +383,7 @@
 
 {% block scripts %}
 <script>
-function handleRegistrationDelete(event, form, code, name) {
+function handleRegistrationDelete(event, url, code, name) {
     event.preventDefault();
     Swal.fire({
         title: `Delete ${name} (${code})?`,
@@ -397,7 +395,7 @@ function handleRegistrationDelete(event, form, code, name) {
         confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
         if (result.isConfirmed) {
-            form.submit();
+            window.location.href = url;
         }
     });
     return false;
