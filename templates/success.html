@@ -4,63 +4,115 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-12 col-md-8 col-lg-6">
-        <div class="alert alert-success border-0" style="background-color: #D4EDDA; color: #155724;">
-            <h4 class="alert-heading mb-2 mb-md-3">✓ Registration Successful</h4>
-            <p class="mb-0">Your registration has been completed successfully.</p>
+    <div class="col-lg-6 col-md-8">
+        <div class="text-center mb-5 animate-up">
+            <div class="success-check mb-4">
+                <i class="bi bi-check-lg"></i>
+            </div>
+            <h1 class="display-5 fw-bold mb-2">Registration Complete!</h1>
+            <p class="text-muted lead">Your details have been securely recorded.</p>
         </div>
-        
-        <div class="card">
-            <div class="card-body p-3 p-md-4">
-                <h5 class="card-title mb-3">Registration Details</h5>
-                
-                <div class="mb-3">
-                    <label class="text-muted small text-uppercase">Registration Code</label>
-                    <p class="h4" style="color: var(--accent-color); font-weight: 600;">{{ registration.registration_code }}</p>
+
+        <div class="card glass-card border-0 mb-4 animate-up" style="animation-delay: 0.1s">
+            <div class="card-body p-4 p-md-5">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0">Registration Pass</h5>
+                    <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill">Verified</span>
                 </div>
-                
-                <hr>
-                
-                <div class="row">
-                    <div class="col-12 col-md-6 mb-3">
-                        <label class="text-muted small text-uppercase">Name</label>
-                        <p class="mb-2">{{ registration.first_name }} {{ registration.middle_name }} {{ registration.last_name }}</p>
+
+                <div class="bg-light rounded-4 p-4 mb-4 text-center border">
+                    <label class="text-uppercase small fw-bold text-muted mb-2 d-block letter-spacing-1">Your Raffle &
+                        Registration Code</label>
+                    <div class="display-4 fw-black text-primary mb-1">{{ registration.registration_code }}</div>
+                    <p class="text-danger fw-bold small mb-0">
+                        <i class="bi bi-camera me-1"></i> PLEASE TAKE A SCREENSHOT
+                    </p>
+                    <p class="text-muted small mb-0">This code is your official entry for the raffle draw.</p>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-sm-7">
+                        <label class="text-muted small fw-bold text-uppercase d-block mb-1">Registrant</label>
+                        <p class="h5 fw-semibold mb-0">{{ registration.first_name }} {{ registration.middle_name }} {{
+                            registration.last_name }}</p>
                     </div>
-                    <div class="col-12 col-md-6 mb-3">
-                        <label class="text-muted small text-uppercase">Age</label>
-                        <p class="mb-2">{{ registration.age }}</p>
+                    <div class="col-sm-5 text-sm-end">
+                        <label class="text-muted small fw-bold text-uppercase d-block mb-1">Age</label>
+                        <p class="h5 fw-semibold mb-0">{{ registration.age }} Years Old</p>
+                    </div>
+                    <div class="col-12">
+                        <label class="text-muted small fw-bold text-uppercase d-block mb-1">Fellowship</label>
+                        <p class="h5 fw-semibold mb-0">{{ registration.church_name }}</p>
                     </div>
                 </div>
-                
-                <div class="mb-3">
-                    <label class="text-muted small text-uppercase">Church</label>
-                    <p class="mb-0">{{ registration.church_name }}</p>
+
+                <div class="d-grid gap-2">
+                    <button onclick="window.print()" class="btn btn-primary btn-lg">
+                        <i class="bi bi-printer me-2"></i> Print Registration
+                    </button>
                 </div>
             </div>
         </div>
-        
-        <div class="card mt-3 border-0" style="background: rgba(52, 152, 219, 0.08);">
-            <div class="card-body p-3 p-md-4 text-center">
-                <h5 class="card-title mb-2" style="color: var(--accent-color);">Your Seat & Floor Plan</h5>
-                <p class="text-muted mb-3" style="font-size: 0.9rem;">Please take a screenshot of this Registration Details for raffle purposes. Your registration code is your seat assignment.</p>
-                <div class="mb-3">
-                    <img src="{{ url_for('static', filename='img/Floor Plan.jpg') }}" alt="Floor Plan" class="img-fluid rounded shadow-sm" style="max-height: 400px; object-fit: contain;">
+
+        <div class="card border-0 shadow-lg animate-up" style="animation-delay: 0.2s; overflow: hidden;">
+            <div class="card-header bg-white p-4 border-bottom">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon bg-primary bg-opacity-10 text-primary mb-0">
+                        <i class="bi bi-map"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0 fw-bold">Venue & Floor Plan</h5>
+                        <p class="text-muted small mb-0">Locate your seat using the floor plan below.</p>
+                    </div>
                 </div>
-                <a href="{{ url_for('static', filename='img/Floor Plan.jpg') }}" download="FloorPlan_{{ registration.registration_code }}.jpg" class="btn btn-primary">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                    Download Floor Plan
+            </div>
+            <div class="card-body p-0">
+                <img src="{{ url_for('static', filename='img/Floor Plan.jpg') }}" alt="Floor Plan"
+                    class="img-fluid w-100" style="object-fit: contain; max-height: 500px;">
+            </div>
+            <div class="card-footer bg-white p-4 text-center">
+                <a href="{{ url_for('static', filename='img/Floor Plan.jpg') }}"
+                    download="NLCF_Pass_{{ registration.registration_code }}.jpg"
+                    class="btn btn-outline-dark w-100 py-3">
+                    <i class="bi bi-download me-2"></i> Download Digital Floor Plan
                 </a>
             </div>
         </div>
-        
-        <div class="mt-3 mt-md-4 d-grid gap-2 col-12 col-sm-8 col-md-6 mx-auto">
-            <a href="{{ url_for('register') }}" class="btn btn-primary">Register Another</a>
-            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Home</a>
+
+        <div class="text-center mt-5 mb-5 animate-up" style="animation-delay: 0.3s">
+            <div class="d-flex gap-3 justify-content-center">
+                <a href="{{ url_for('register') }}" class="btn btn-link text-decoration-none fw-bold">Register
+                    Another</a>
+                <a href="{{ url_for('index') }}" class="btn btn-link text-decoration-none fw-bold">Return Home</a>
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+    @media print {
+
+        .navbar,
+        footer,
+        .btn,
+        .card-footer,
+        .text-center.mt-5 {
+            display: none !important;
+        }
+
+        .container {
+            width: 100% !important;
+            max-width: none !important;
+        }
+
+        .card {
+            box-shadow: none !important;
+            border: 1px solid #ddd !important;
+        }
+
+        body {
+            background: white !important;
+        }
+    }
+</style>
 {% endblock %}

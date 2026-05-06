@@ -1,15 +1,25 @@
 {% extends "base.html" %}
 
-{% block title %}Home - New Life In Christ Fellowship{% endblock %}
+{% block title %}45th Annual Reunion - New Life In Christ Fellowship{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center align-items-center" style="min-height: 50vh;">
-    <div class="col-12 col-md-8 col-lg-6 text-center">
-        <h1 class="display-4 mb-3 mb-md-4">Welcome</h1>
-        
-        <div class="d-grid gap-3 col-12 col-sm-8 col-md-6 mx-auto">
-            <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg w-100">Register Now</a>
+<div class="row justify-content-center align-items-center" style="min-height: 60vh;">
+    <div class="col-lg-8 text-center animate-up">
+        <div class="mb-4">
+            <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill fw-semibold mb-3">Celebration & Gathering</span>
+            <h1 class="display-3 mb-3 text-gradient">45th Annual Reunion</h1>
+            <p class="lead text-muted mb-5 mx-auto fw-medium" style="max-width: 600px; font-style: italic;">
+                Honoring our Past, Celebrating our Present, Inspiring our Future.
+            </p>
         </div>
+        
+        <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+            <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg px-5 py-3 shadow-lg">
+                <i class="bi bi-pencil-square"></i> Register Now
+            </a>
+        </div>
+        
+
     </div>
 </div>
 {% endblock %}
