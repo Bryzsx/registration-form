@@ -378,11 +378,11 @@
             </form>
         </div>
     <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="deleteModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-0 shadow-xl" style="border-radius: 20px;">
+            <div class="modal-content border-0" style="border-radius: 20px;">
                 <div class="modal-body p-4 text-center">
-                    <div class="stat-icon bg-danger bg-opacity-10 text-danger mx-auto mb-4" style="width: 64px; height: 64px; border-radius: 50%; font-size: 1.5rem;">
+                    <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 1.5rem; color: #ef4444;">
                         <i class="bi bi-exclamation-triangle"></i>
                     </div>
                     <h5 class="fw-bold mb-2">Delete Record?</h5>
@@ -390,7 +390,7 @@
                     <p class="fw-bold small mb-4" id="deleteRegName"></p>
                     <p class="text-muted small mb-4">This action cannot be undone.</p>
                     <div class="d-grid gap-2">
-                        <a href="#" id="confirmDeleteBtn" class="btn btn-danger py-2" style="border-radius: 12px;">Delete Forever</a>
+                        <button id="confirmDeleteBtn" class="btn btn-danger py-2" style="border-radius: 12px;">Delete Forever</button>
                         <button type="button" class="btn btn-light py-2" data-bs-dismiss="modal" style="border-radius: 12px;">Cancel</button>
                     </div>
                 </div>
@@ -402,13 +402,10 @@
 
 {% block scripts %}
 <script data-v="20260506-2300">
-let deleteRegId = null;
-
 function showDeleteModal(id, code, name) {
-    deleteRegId = id;
     document.getElementById('deleteRegName').textContent = name + ' (' + code + ')';
-    document.getElementById('confirmDeleteBtn').href = '/admin/registration/' + id + '/delete';
-    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    document.getElementById('confirmDeleteBtn').setAttribute('onclick', 'window.location.href="/admin/registration/' + id + '/delete"');
+    var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
     modal.show();
 }
 
