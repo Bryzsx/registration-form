@@ -236,9 +236,9 @@
                                     <button class="btn btn-light action-btn edit-btn" data-reg-id="{{ reg.id }}" onclick="event.stopPropagation(); editRegistration('{{ reg.id }}')">
                                         <i class="bi bi-pencil text-primary"></i>
                                     </button>
-                                    <a href="/admin/registration/{{ reg.id }}/delete" class="btn btn-light action-btn" onclick="return confirm('Delete this registration?')">
+                                    <button class="btn btn-light action-btn" onclick="event.stopPropagation(); showDeleteModal('{{ reg.id }}', '{{ reg.registration_code }}', '{{ reg.first_name }} {{ reg.last_name }}')">
                                         <i class="bi bi-trash text-danger"></i>
-                                    </a>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -377,11 +377,41 @@
                 </div>
             </form>
         </div>
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-xl" style="border-radius: 20px;">
+                <div class="modal-body p-4 text-center">
+                    <div class="stat-icon bg-danger bg-opacity-10 text-danger mx-auto mb-4" style="width: 64px; height: 64px; border-radius: 50%; font-size: 1.5rem;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Delete Record?</h5>
+                    <p class="text-muted small mb-2">Are you sure you want to delete:</p>
+                    <p class="fw-bold small mb-4" id="deleteRegName"></p>
+                    <p class="text-muted small mb-4">This action cannot be undone.</p>
+                    <div class="d-grid gap-2">
+                        <a href="#" id="confirmDeleteBtn" class="btn btn-danger py-2" style="border-radius: 12px;">Delete Forever</a>
+                        <button type="button" class="btn btn-light py-2" data-bs-dismiss="modal" style="border-radius: 12px;">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script data-v="20260506-2234">
+<script data-v="20260506-2300">
+let deleteRegId = null;
+
+function showDeleteModal(id, code, name) {
+    deleteRegId = id;
+    document.getElementById('deleteRegName').textContent = name + ' (' + code + ')';
+    document.getElementById('confirmDeleteBtn').href = '/admin/registration/' + id + '/delete';
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
 function toggleEditOtherChurch() {
     const select = document.getElementById('editChurchId');
     const otherDiv = document.getElementById('edit_other_church_div');
