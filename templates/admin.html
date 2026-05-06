@@ -462,36 +462,6 @@
             padding: 0.3rem 0.6rem;
             font-size: 0.75rem;
         }
-    .watermark {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) rotate(-15deg);
-        text-align: center;
-        pointer-events: none;
-        z-index: -1;
-        opacity: 0.08;
-    }
-    .watermark h1 {
-        font-size: 3.5rem;
-        font-weight: 900;
-        color: var(--text-dark);
-        margin: 0;
-        letter-spacing: 4px;
-        line-height: 1.2;
-    }
-    .watermark h2 {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--accent-color);
-        margin: 1rem 0 0.5rem;
-    }
-    .watermark p {
-        font-size: 1.2rem;
-        font-weight: 500;
-        color: var(--text-dark);
-        margin: 0.25rem 0;
-    }
     .btn-manage-churches {
         background: linear-gradient(135deg, var(--warning-color), #e67e22);
         color: white;
@@ -512,18 +482,16 @@
         box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
         color: white;
     }
+    #churchModal .modal-content,
+    #churchModal .form-control,
+    #churchModal .btn {
+        z-index: 10001 !important;
+        pointer-events: auto !important;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="watermark">
-    <h1>NEW LIFE IN CHRIST FELLOWSHIP</h1>
-    <h2>45TH ANNUAL REUNION</h2>
-    <p>HONORING OUR PAST</p>
-    <p>CELEBRATING OUR PRESENT</p>
-    <p>INSPIRING OUR FUTURE</p>
-</div>
-
 <!-- Statistics Cards -->
 <div class="row g-3 mb-4 align-items-center">
     <div class="col-6 col-lg-3">
@@ -751,9 +719,9 @@
 </div>
 
 <!-- Church Management Modal -->
-<div class="modal fade" id="churchModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
+<div class="modal fade" id="churchModal" tabindex="-1" style="z-index: 9999 !important;" data-bs-backdrop="false">
+    <div class="modal-dialog modal-dialog-centered modal-lg" style="z-index: 10000 !important;">
+        <div class="modal-content" style="position: relative; z-index: 10001 !important;">
             <div class="modal-header">
                 <h5 class="modal-title">Manage Churches</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -895,6 +863,13 @@
 
 {% block scripts %}
 <script>
+// Fix church modal input blocking
+document.getElementById('churchModal')?.addEventListener('show.bs.modal', function () {
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.overflow = '';
+});
+
 // Use event delegation for table rows
 document.querySelector('.table tbody')?.addEventListener('click', function(e) {
     const editBtn = e.target.closest('.edit-btn');
