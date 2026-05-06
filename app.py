@@ -268,7 +268,7 @@ def edit_registration(id):
     flash('Registration updated successfully', 'success')
     return redirect(url_for('admin'))
 
-@app.route('/admin/registration/<int:id>/delete')
+@app.route('/admin/registration/<int:id>/delete', methods=['GET', 'POST'])
 @login_required
 def delete_registration(id):
     reg = Registration.query.get_or_404(id)
