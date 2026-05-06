@@ -14,13 +14,14 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-
 
 # Database configuration
 database_url = os.environ.get('DATABASE_URL')
+
+# Fallback to Supabase if environment variable is missing
 if not database_url:
-    # Local development fallback
-    database_url = 'sqlite:///registrations.db'
-else:
-    # Supabase requires SSL
-    if 'supabase.co' in database_url and 'sslmode' not in database_url:
-        database_url += '?sslmode=require'
+    database_url = 'postgresql://postgres:newp%40ssw0rd09774181320123@db.ydafhuwteucdcbvqtkix.supabase.co:5432/postgres?sslmode=require'
+
+# Supabase requires SSL and connection pooling
+if 'supabase.co' in database_url and 'sslmode' not in database_url:
+    database_url += '&sslmode=require'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
