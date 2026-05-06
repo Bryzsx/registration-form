@@ -237,6 +237,7 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 2px 12px rgba(0,0,0,0.06);
     border-radius: 12px;
     transition: all 0.3s ease;
+    background: #ffffff !important;
 }
 
 .card:hover {
@@ -363,7 +364,7 @@ footer a:hover {
 }
 
 .stat-card {
-    background: var(--card-bg);
+    background: #ffffff !important;
     border-radius: var(--radius-md);
     padding: 1.5rem;
     box-shadow: var(--shadow-sm);
@@ -594,7 +595,7 @@ footer a:hover {
 }
 
 .filter-section {
-    background: white;
+    background: #ffffff !important;
     border-radius: 12px;
     padding: 1.5rem;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
@@ -609,7 +610,7 @@ footer a:hover {
 }
 
 .age-group-section {
-    background: white;
+    background: #ffffff !important;
     border-radius: 12px;
     padding: 1.5rem;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
@@ -624,7 +625,7 @@ footer a:hover {
 }
 
 .table-container {
-    background: white;
+    background: #ffffff !important;
     border-radius: 12px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     border: 1px solid #f0f0f0;
@@ -666,7 +667,12 @@ footer a:hover {
 }
 
 @media (max-width: 576px) {
-    .justify-content-center.align-items-center {
+.chart-card,
+.church-management-card,
+.church-form-card {
+    background: #ffffff !important;
+}
+.justify-content-center.align-items-center {
         min-height: 50vh;
     }
 }
