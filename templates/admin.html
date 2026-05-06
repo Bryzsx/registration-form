@@ -198,7 +198,7 @@
                     <span class="text-muted">{{ count }} Users</span>
                 </div>
                 <div class="bar-track">
-                    <div class="bar-fill bg-accent" style="width: {{ (count / total * 100) if total > 0 else 0 }}%"></div>
+                    <div class="bar-fill bg-success" style="width: {{ (count / total * 100) if total > 0 else 0 }}%"></div>
                 </div>
             </div>
             {% endfor %}
@@ -282,10 +282,16 @@
                             <span class="fw-bold" id="modalChurch"></span>
                         </div>
                     </div>
-                    <div class="col-12">
+                    <div class="col-6">
                         <div class="p-3 bg-light rounded-3">
                             <label class="small text-muted fw-bold d-block mb-1">Birth Date</label>
                             <span class="fw-bold" id="modalBirthDate"></span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 bg-light rounded-3">
+                            <label class="small text-muted fw-bold d-block mb-1">Gender</label>
+                            <span class="fw-bold" id="modalGender"></span>
                         </div>
                     </div>
                 </div>
@@ -352,9 +358,17 @@
                             <label class="form-label">Last Name</label>
                             <input type="text" class="form-control" id="editLastName" name="last_name" required>
                         </div>
-                        <div class="col-12">
+                        <div class="col-6">
                             <label class="form-label">Birth Date</label>
                             <input type="date" class="form-control" id="editBirthDate" name="birth_date" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Gender</label>
+                            <select class="form-select" id="editGender" name="gender" required>
+                                <option value="" disabled>Select gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
                         </div>
                         <div class="col-12">
                             <label class="form-label">Church</label>
@@ -442,6 +456,7 @@ function showDetails(id) {
             document.getElementById('modalAge').textContent = data.age;
             document.getElementById('modalChurch').textContent = data.church_name;
             document.getElementById('modalBirthDate').textContent = data.birth_date;
+            document.getElementById('modalGender').textContent = data.gender || 'Not Specified';
             document.getElementById('modalRegDate').textContent = "Registered on " + data.registration_date;
             
             new bootstrap.Modal(document.getElementById('detailsModal')).show();
@@ -455,6 +470,7 @@ function editRegistration(id) {
             document.getElementById('editFirstName').value = data.first_name;
             document.getElementById('editLastName').value = data.last_name;
             document.getElementById('editBirthDate').value = data.birth_date;
+            document.getElementById('editGender').value = data.gender || '';
             
             const churchSelect = document.getElementById('editChurchId');
             const otherDiv = document.getElementById('edit_other_church_div');

@@ -63,6 +63,7 @@ class Registration(db.Model):
     first_name = db.Column(db.String(100), nullable=False)
     last_name = db.Column(db.String(100), nullable=False)
     middle_name = db.Column(db.String(100), nullable=True)
+    gender = db.Column(db.String(10), nullable=False, server_default='Not Specified')
     birth_date = db.Column(db.Date, nullable=False)
     age = db.Column(db.Integer, nullable=False)
     church_name = db.Column(db.String(200), nullable=False)
@@ -110,6 +111,7 @@ def register():
             first_name=data['first_name'],
             last_name=data['last_name'],
             middle_name=data.get('middle_name', ''),
+            gender=data.get('gender', 'Not Specified'),
             birth_date=birth_date,
             age=0,
             church_name=church_name,
@@ -235,6 +237,7 @@ def get_registration(id):
         'first_name': reg.first_name,
         'last_name': reg.last_name,
         'middle_name': reg.middle_name,
+        'gender': reg.gender,
         'birth_date': reg.birth_date.strftime('%Y-%m-%d'),
         'age': reg.age,
         'church_name': reg.church_name,
@@ -251,6 +254,7 @@ def edit_registration(id):
     reg.first_name = data['first_name']
     reg.last_name = data['last_name']
     reg.middle_name = data.get('middle_name', '')
+    reg.gender = data.get('gender', reg.gender)
     reg.birth_date = datetime.strptime(data['birth_date'], '%Y-%m-%d').date()
     reg.age = reg.calculate_age()
     
@@ -296,6 +300,7 @@ def export_excel():
             'First Name': reg.first_name,
             'Last Name': reg.last_name,
             'Middle Name': reg.middle_name,
+            'Gender': reg.gender,
             'Birth Date': reg.birth_date.strftime('%Y-%m-%d'),
             'Age': reg.age,
             'Church Name': reg.church_name,
