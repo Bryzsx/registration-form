@@ -236,9 +236,11 @@
                                     <button class="btn btn-light action-btn edit-btn" data-reg-id="{{ reg.id }}" onclick="event.stopPropagation(); editRegistration('{{ reg.id }}')">
                                         <i class="bi bi-pencil text-primary"></i>
                                     </button>
-                                    <button class="btn btn-light action-btn" onclick="event.stopPropagation(); showDeleteModal('{{ reg.id }}', '{{ reg.registration_code }}', '{{ reg.first_name }} {{ reg.last_name }}')">
-                                        <i class="bi bi-trash text-danger"></i>
-                                    </button>
+                                    <form action="/admin/registration/{{ reg.id }}/delete" method="post" style="display:inline;" onsubmit="return handleRegistrationDelete(event, this, '{{ reg.registration_code }}', '{{ reg.first_name }} {{ reg.last_name }}')">
+                                        <button type="submit" class="btn btn-light action-btn">
+                                            <i class="bi bi-trash text-danger"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -320,7 +322,7 @@
                             {% for church in all_churches %}
                             <div class="list-group-item d-flex justify-content-between align-items-center p-3">
                                 <span class="fw-medium">{{ church.name }}</span>
-                                <a href="{{ url_for('delete_church', id=church.id) }}" class="btn btn-link text-danger p-0" onclick="return confirm('Delete church?')">
+                                <a href="{{ url_for('delete_church', id=church.id) }}" class="btn btn-link text-danger p-0" onclick="return handleChurchDelete(event, this.href)">
                                     <i class="bi bi-trash"></i>
                                 </a>
                             </div>
@@ -378,39 +380,45 @@
             </form>
         </div>
         </div>
-    
-    <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-0" style="border-radius: 20px;">
-                <div class="modal-body p-4 text-center">
-                    <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 1.5rem; color: #ef4444;">
-                        <i class="bi bi-exclamation-triangle"></i>
-                    </div>
-                    <h5 class="fw-bold mb-2">Delete Record?</h5>
-                    <p class="text-muted small mb-2">Are you sure you want to delete:</p>
-                    <p class="fw-bold small mb-4" id="deleteRegName"></p>
-                    <p class="text-muted small mb-4">This action cannot be undone.</p>
-                    <div class="d-grid gap-2">
-                        <form id="deleteForm" method="post" action="">
-                            <button type="submit" class="btn btn-danger py-2 w-100" style="border-radius: 12px;">Delete Forever</button>
-                        </form>
-                        <button type="button" class="btn btn-light py-2" data-bs-dismiss="modal" style="border-radius: 12px;">Cancel</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script data-v="20260507-0215">
-function showDeleteModal(id, code, name) {
-    document.getElementById('deleteRegName').textContent = name + ' (' + code + ')';
-    document.getElementById('deleteForm').action = '/admin/registration/' + id + '/delete';
-    var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    modal.show();
+<script>
+function handleRegistrationDelete(event, form, code, name) {
+    event.preventDefault();
+    Swal.fire({
+        title: `Delete ${name} (${code})?`,
+        text: "This action cannot be undone.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            form.submit();
+        }
+    });
+    return false;
+}
+
+function handleChurchDelete(event, url) {
+    event.preventDefault();
+    Swal.fire({
+        title: 'Delete church?',
+        text: "This action cannot be undone.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = url;
+        }
+    });
+    return false;
 }
 
 function toggleEditOtherChurch() {
