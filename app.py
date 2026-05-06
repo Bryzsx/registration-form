@@ -15,13 +15,16 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-
 # Database configuration
 database_url = os.environ.get('DATABASE_URL')
 
-# Fallback to Supabase if environment variable is missing
+# Fallback to local SQLite if environment variable is missing or external DB is blocked
 if not database_url:
-    database_url = 'postgresql://postgres:newp%40ssw0rd09774181320123@db.ydafhuwteucdcbvqtkix.supabase.co:5432/postgres?sslmode=require'
+    database_url = 'sqlite:///registrations.db'
+elif 'supabase.co' in database_url:
+    # Supabase requires SSL and specific pooling, but free PythonAnywhere blocks port 5432
+    database_url = 'sqlite:///registrations.db'
 
 # Supabase requires SSL and connection pooling
 if 'supabase.co' in database_url and 'sslmode' not in database_url:
-    database_url += '&sslmode=require'
+    database_url += '?sslmode=require'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
