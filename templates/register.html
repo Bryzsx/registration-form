@@ -60,7 +60,7 @@
                                 <input type="text" class="form-control border-start-0" id="church-search" placeholder="Type to search church..." autocomplete="off" required>
                                 <button type="button" class="btn btn-outline-secondary d-none" id="clear-search" style="border-left: none;"><i class="bi bi-x"></i></button>
                             </div>
-                            <select class="d-none" id="church_id" name="church_id" required>
+                            <select class="d-none" id="church-select">
                                 <option value="" selected disabled>Select your church</option>
                                 {% for church in churches %}
                                     <option value="{{ church.id }}">{{ church.name }}</option>
@@ -68,7 +68,7 @@
                             </select>
                             <div class="list-group mt-1 shadow-sm d-none" id="church-list" style="max-height: 200px; overflow-y: auto; z-index: 1000;">
                             </div>
-                            <input type="hidden" id="selected-church-id" name="church_id" required>
+                            <input type="hidden" id="selected-church-id" name="church_id" value="" required>
                         </div>
                     
                     <div class="d-grid pt-2">
