@@ -2,9 +2,9 @@
     /* Color Palette - Sophisticated & Professional */
     --primary: #0f172a;
     --primary-light: #1e293b;
-    --accent: #3b82f6;
-    --accent-glow: rgba(59, 130, 246, 0.5);
-    --secondary: #6366f1;
+    --accent: #556B2F;
+    --accent-glow: rgba(85, 107, 47, 0.5);
+    --secondary: #6B8E23;
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #ef4444;
@@ -24,6 +24,13 @@
     --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     
     /* Dimensions */
+    /* Bootstrap Overrides */
+    --bs-primary: #556B2F;
+    --bs-primary-rgb: 85, 107, 47;
+    --bs-primary-bg-subtle: #e8edd9;
+    --bs-link-color: #556B2F;
+    --bs-link-hover-color: #3d5a1e;
+    
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 20px;
@@ -80,6 +87,10 @@ h1, h2, h3, h4, h5, h6 {
     -webkit-text-fill-color: transparent;
 }
 
+.text-accent {
+    color: var(--accent);
+}
+
 /* Navigation */
 .navbar {
     height: var(--nav-height);
@@ -117,12 +128,12 @@ h1, h2, h3, h4, h5, h6 {
 
 .nav-link:hover {
     color: var(--accent) !important;
-    background: rgba(59, 130, 246, 0.05);
+    background: rgba(85, 107, 47, 0.05);
 }
 
 .nav-link.active {
     color: var(--accent) !important;
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(85, 107, 47, 0.1);
 }
 
 /* Cards & Containers */
@@ -164,12 +175,12 @@ h1, h2, h3, h4, h5, h6 {
     background: linear-gradient(135deg, var(--accent) 0%, var(--secondary) 100%);
     border: none;
     color: white;
-    box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+    box-shadow: 0 4px 14px 0 rgba(85, 107, 47, 0.39);
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.23);
+    box-shadow: 0 6px 20px rgba(85, 107, 47, 0.23);
     background: linear-gradient(135deg, var(--accent) 20%, var(--secondary) 110%);
 }
 
@@ -227,7 +238,7 @@ h1, h2, h3, h4, h5, h6 {
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(85, 107, 47, 0.1);
     color: var(--accent);
 }
 
