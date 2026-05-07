@@ -537,30 +537,30 @@ def export_excel():
         flash('An error occurred during export. Please try again.', 'danger')
         return redirect(url_for('admin'))
 
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        # Create admin if not exists
-        if not Admin.query.filter_by(username='admin').first():
-            admin = Admin(username='admin')
-            admin.set_password('admin123')
-            db.session.add(admin)
-        
-        # Pre-populate churches
-        default_churches = ['NLC Main (Central Zone)', 'NLCF Gingoog (West Zone)']
-        for church_name in default_churches:
-            if not Church.query.filter_by(name=church_name).first():
-                church = Church(name=church_name)
-                db.session.add(church)
-        
-        # Pre-populate zones
-        default_zones = ['Central Zone', 'Eastern Zone', 'Western Zone', 'Mother Church']
-        for zone_name in default_zones:
-            if not Zone.query.filter_by(name=zone_name).first():
-                zone = Zone(name=zone_name)
-                db.session.add(zone)
-        
-        db.session.commit()
+with app.app_context():
+    db.create_all()
+    # Create admin if not exists
+    if not Admin.query.filter_by(username='admin').first():
+        admin = Admin(username='admin')
+        admin.set_password('admin123')
+        db.session.add(admin)
     
+    # Pre-populate churches
+    default_churches = ['NLC Main (Central Zone)', 'NLCF Gingoog (West Zone)']
+    for church_name in default_churches:
+        if not Church.query.filter_by(name=church_name).first():
+            church = Church(name=church_name)
+            db.session.add(church)
+    
+    # Pre-populate zones
+    default_zones = ['Central Zone', 'Eastern Zone', 'Western Zone', 'Mother Church']
+    for zone_name in default_zones:
+        if not Zone.query.filter_by(name=zone_name).first():
+            zone = Zone(name=zone_name)
+            db.session.add(zone)
+    
+    db.session.commit()
+
+if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
