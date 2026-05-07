@@ -17,7 +17,7 @@ app = Flask(__name__)
 # Configuration
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-this-in-production')
 csrf = CSRFProtect(app)
-limiter = Limiter(key_func=get_remote_address, app=app, default_limits=["200 per day", "50 per hour"])
+limiter = Limiter(key_func=get_remote_address, app=app)
 
 # Logging
 if not app.debug:
@@ -82,7 +82,6 @@ class Registration(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(100), nullable=False)
     last_name = db.Column(db.String(100), nullable=False)
-    middle_name = db.Column(db.String(100), nullable=True)
     gender = db.Column(db.String(10), nullable=False, server_default='Not Specified')
     age = db.Column(db.Integer, nullable=False)
     church_name = db.Column(db.String(200), nullable=False)
@@ -129,7 +128,6 @@ def register():
         zone_id = data.get('zone_id')
         first_name = data.get('first_name', '').strip()
         last_name = data.get('last_name', '').strip()
-        middle_name = data.get('middle_name', '').strip()
         gender = data.get('gender', '')
         age_str = data.get('age', '')
         church_id = data.get('church_id')
@@ -141,9 +139,6 @@ def register():
         
         if not last_name or not last_name.replace(' ', '').isalpha():
             errors.append('Last name must contain only letters')
-        
-        if middle_name and not middle_name.replace(' ', '').isalpha():
-            errors.append('Middle name must contain only letters')
         
         if gender not in ['Male', 'Female']:
             errors.append('Gender must be Male or Female')
@@ -177,7 +172,6 @@ def register():
             reg = Registration(
                 first_name=first_name,
                 last_name=last_name,
-                middle_name=middle_name,
                 gender=gender,
                 age=age,
                 church_name=church_name,
@@ -405,7 +399,6 @@ def get_registration(id):
         'id': reg.id,
         'first_name': reg.first_name,
         'last_name': reg.last_name,
-        'middle_name': reg.middle_name,
         'gender': reg.gender,
         'age': reg.age,
         'church_name': reg.church_name,
@@ -440,7 +433,6 @@ def edit_registration(id):
         
         reg.first_name = first_name
         reg.last_name = last_name
-        reg.middle_name = data.get('middle_name', '').strip()
         reg.gender = data.get('gender', reg.gender)
         
         age_str = data.get('age', '')
@@ -510,7 +502,6 @@ def export_excel():
                 'Registration Code': reg.registration_code,
                 'First Name': reg.first_name,
                 'Last Name': reg.last_name,
-                'Middle Name': reg.middle_name,
                 'Gender': reg.gender,
                 'Age': reg.age,
                 'Church Name': reg.church_name,

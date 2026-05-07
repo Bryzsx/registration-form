@@ -586,7 +586,7 @@ function showDetails(id) {
         .then(res => res.json())
         .then(data => {
             document.getElementById('modalCode').textContent = data.registration_code;
-            document.getElementById('modalName').textContent = `${data.first_name} ${data.middle_name || ''} ${data.last_name}`.trim();
+            document.getElementById('modalName').textContent = `${data.first_name} ${data.last_name}`;
             document.getElementById('modalAge').textContent = data.age;
             document.getElementById('modalChurch').textContent = data.church_name;
             document.getElementById('modalZone').textContent = data.zone_name || 'Not Assigned';
