@@ -30,21 +30,25 @@
                     <p class="text-muted small mb-0">This code is your official entry for the raffle draw.</p>
                 </div>
 
-                <div class="row g-4 mb-4">
-                    <div class="col-sm-7">
-                        <label class="text-muted small fw-bold text-uppercase d-block mb-1">Registrant</label>
-                        <p class="h5 fw-semibold mb-0">{{ registration.first_name }} {{ registration.middle_name }} {{
-                            registration.last_name }}</p>
+                    <div class="row g-4 mb-4">
+                        <div class="col-sm-7">
+                            <label class="text-muted small fw-bold text-uppercase d-block mb-1">Registrant</label>
+                            <p class="h5 fw-semibold mb-0">{{ registration.first_name }} {{ registration.middle_name }} {{
+                                registration.last_name }}</p>
+                        </div>
+                        <div class="col-sm-5 text-sm-end">
+                            <label class="text-muted small fw-bold text-uppercase d-block mb-1">Age & Gender</label>
+                            <p class="h5 fw-semibold mb-0">{{ registration.age }} Y/O &bull; {{ registration.gender }}</p>
+                        </div>
+                        <div class="col-12">
+                            <label class="text-muted small fw-bold text-uppercase d-block mb-1">Zone</label>
+                            <p class="h5 fw-semibold mb-0">{{ registration.zone_name }}</p>
+                        </div>
+                        <div class="col-12">
+                            <label class="text-muted small fw-bold text-uppercase d-block mb-1">Fellowship</label>
+                            <p class="h5 fw-semibold mb-0">{{ registration.church_name }}</p>
+                        </div>
                     </div>
-                    <div class="col-sm-5 text-sm-end">
-                        <label class="text-muted small fw-bold text-uppercase d-block mb-1">Age & Gender</label>
-                        <p class="h5 fw-semibold mb-0">{{ registration.age }} Y/O &bull; {{ registration.gender }}</p>
-                    </div>
-                    <div class="col-12">
-                        <label class="text-muted small fw-bold text-uppercase d-block mb-1">Fellowship</label>
-                        <p class="h5 fw-semibold mb-0">{{ registration.church_name }}</p>
-                    </div>
-                </div>
 
                 <div class="d-grid gap-2">
                     <button onclick="window.print()" class="btn btn-primary btn-lg">

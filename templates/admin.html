@@ -87,6 +87,9 @@
                 <button type="button" class="btn btn-light px-4" data-bs-toggle="modal" data-bs-target="#churchModal">
                     <i class="bi bi-house-add me-2"></i> Churches
                 </button>
+                <button type="button" class="btn btn-light px-4" data-bs-toggle="modal" data-bs-target="#zoneModal">
+                    <i class="bi bi-geo-alt me-2"></i> Zones
+                </button>
                 <a href="{{ url_for('export_excel') }}" class="btn btn-primary px-4">
                     <i class="bi bi-file-earmark-spreadsheet me-2"></i> Export Data
                 </a>
@@ -245,16 +248,43 @@
                         {% endfor %}
                     </tbody>
                 </table>
-                {% if not registrations %}
-                <div class="p-5 text-center text-muted">
-                    <i class="bi bi-clipboard-x display-4 mb-3 d-block opacity-25"></i>
-                    No registrations found matching your criteria.
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
+                 {% if not registrations %}
+                 <div class="p-5 text-center text-muted">
+                     <i class="bi bi-clipboard-x display-4 mb-3 d-block opacity-25"></i>
+                     No registrations found matching your criteria.
+                 </div>
+                 {% endif %}
+             </div>
+             <!-- Pagination -->
+             {% if pagination.pages > 1 %}
+             <div class="p-4 border-top d-flex justify-content-between align-items-center bg-white">
+                 <div class="small text-muted">
+                     Showing {{ pagination.per_page * (pagination.page - 1) + 1 }} to {{ pagination.per_page * (pagination.page - 1) + registrations|length }} of {{ pagination.total }} records
+                 </div>
+                 <nav>
+                     <ul class="pagination pagination-sm mb-0">
+                         <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                             <a class="page-link" href="{{ url_for('admin', page=pagination.prev_num, search=search, church=church_filter, date_from=date_from, date_to=date_to) if pagination.has_prev else '#' }}">Previous</a>
+                         </li>
+                         {% for page_num in pagination.iter_pages() %}
+                             {% if page_num %}
+                                 <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                     <a class="page-link" href="{{ url_for('admin', page=page_num, search=search, church=church_filter, date_from=date_from, date_to=date_to) }}">{{ page_num }}</a>
+                                 </li>
+                             {% else %}
+                                 <li class="page-item disabled"><span class="page-link">...</span></li>
+                             {% endif %}
+                         {% endfor %}
+                         <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                             <a class="page-link" href="{{ url_for('admin', page=pagination.next_num, search=search, church=church_filter, date_from=date_from, date_to=date_to) if pagination.has_next else '#' }}">Next</a>
+                         </li>
+                     </ul>
+                 </nav>
+             </div>
+             {% endif %}
+         </div>
+     </div>
+ </div>
 
 <!-- Details Modal -->
 <div class="modal fade" id="detailsModal" tabindex="-1">
@@ -269,32 +299,32 @@
                     <h3 class="fw-bold mb-1" id="modalName"></h3>
                     <p class="text-muted small" id="modalRegDate"></p>
                 </div>
-                <div class="row g-3">
-                    <div class="col-6">
-                        <div class="p-3 bg-light rounded-3">
-                            <label class="small text-muted fw-bold d-block mb-1">Age</label>
-                            <span class="fw-bold" id="modalAge"></span>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <label class="small text-muted fw-bold d-block mb-1">Age</label>
+                                <span class="fw-bold" id="modalAge"></span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <label class="small text-muted fw-bold d-block mb-1">Fellowship</label>
+                                <span class="fw-bold" id="modalChurch"></span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <label class="small text-muted fw-bold d-block mb-1">Zone</label>
+                                <span class="fw-bold" id="modalZone"></span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <label class="small text-muted fw-bold d-block mb-1">Gender</label>
+                                <span class="fw-bold" id="modalGender"></span>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-6">
-                        <div class="p-3 bg-light rounded-3">
-                            <label class="small text-muted fw-bold d-block mb-1">Fellowship</label>
-                            <span class="fw-bold" id="modalChurch"></span>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="p-3 bg-light rounded-3">
-                            <label class="small text-muted fw-bold d-block mb-1">Birth Date</label>
-                            <span class="fw-bold" id="modalBirthDate"></span>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="p-3 bg-light rounded-3">
-                            <label class="small text-muted fw-bold d-block mb-1">Gender</label>
-                            <span class="fw-bold" id="modalGender"></span>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -313,7 +343,8 @@
                     <div class="col-md-5 border-end">
                         <h6 class="fw-bold mb-3">Add New Church</h6>
                         <form method="POST" action="{{ url_for('add_church') }}">
-                            <div class="mb-3">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                             <div class="mb-3">
                                 <label class="form-label">Church Name</label>
                                 <input type="text" class="form-control" name="church_name" placeholder="Enter name" required>
                             </div>
@@ -339,6 +370,76 @@
     </div>
 </div>
 
+<!-- Zone Modal -->
+<div class="modal fade" id="zoneModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow-xl">
+            <div class="modal-header border-bottom p-4">
+                <h5 class="fw-bold mb-0">Manage Zones</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-5 border-end">
+                        <h6 class="fw-bold mb-3">Add New Zone</h6>
+                        <form method="POST" action="{{ url_for('add_zone') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                             <div class="mb-3">
+                                <label class="form-label">Zone Name</label>
+                                <input type="text" class="form-control" name="zone_name" placeholder="Enter zone name" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Add Zone</button>
+                        </form>
+                    </div>
+                    <div class="col-md-7">
+                        <h6 class="fw-bold mb-3">Active Zones</h6>
+                        <div class="list-group list-group-flush rounded-3 border" style="max-height: 300px; overflow-y: auto;">
+                            {% for zone in all_zones %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                                <span class="fw-medium">{{ zone.name }}</span>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-link text-primary p-0" data-bs-toggle="modal" data-bs-target="#editZoneModal" onclick="openEditZone('{{ zone.id }}', '{{ zone.name }}')">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <a href="{{ url_for('delete_zone', id=zone.id) }}" class="btn btn-link text-danger p-0" onclick="return handleZoneDelete(event, this.href)">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Zone Modal -->
+<div class="modal fade" id="editZoneModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-xl">
+            <div class="modal-header border-bottom p-4">
+                <h5 class="fw-bold mb-0">Edit Zone</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editZoneForm" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label">Zone Name</label>
+                        <input type="text" class="form-control" id="editZoneName" name="zone_name" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4">Update Zone</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Edit Modal -->
 <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -347,8 +448,9 @@
                 <h5 class="fw-bold mb-0">Edit Record</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="editForm" method="POST">
-                <div class="modal-body p-4">
+                <form id="editForm" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                     <div class="modal-body p-4">
                     <div class="row g-3">
                         <div class="col-6">
                             <label class="form-label">First Name</label>
@@ -359,8 +461,8 @@
                             <input type="text" class="form-control" id="editLastName" name="last_name" required>
                         </div>
                         <div class="col-6">
-                            <label class="form-label">Birth Date</label>
-                            <input type="date" class="form-control" id="editBirthDate" name="birth_date" required>
+                            <label class="form-label">Age</label>
+                            <input type="number" class="form-control" id="editAge" name="age" min="0" max="120" required>
                         </div>
                         <div class="col-6">
                             <label class="form-label">Gender</label>
@@ -368,6 +470,15 @@
                                 <option value="" disabled>Select gender</option>
                                 <option value="Male">Male</option>
                                 <option value="Female">Female</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Zone</label>
+                            <select class="form-select" id="editZoneId" name="zone_id">
+                                <option value="none">No Zone</option>
+                                {% for zone in all_zones %}
+                                    <option value="{{ zone.id }}">{{ zone.name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         <div class="col-12">
@@ -433,6 +544,29 @@ function handleChurchDelete(event, url) {
     return false;
 }
 
+function handleZoneDelete(event, url) {
+    event.preventDefault();
+    Swal.fire({
+        title: 'Delete zone?',
+        text: "This action cannot be undone.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = url;
+        }
+    });
+    return false;
+}
+
+function openEditZone(id, name) {
+    document.getElementById('editZoneName').value = name;
+    document.getElementById('editZoneForm').action = `/admin/zone/${id}/edit`;
+}
+
 function toggleEditOtherChurch() {
     const select = document.getElementById('editChurchId');
     const otherDiv = document.getElementById('edit_other_church_div');
@@ -455,7 +589,7 @@ function showDetails(id) {
             document.getElementById('modalName').textContent = `${data.first_name} ${data.middle_name || ''} ${data.last_name}`.trim();
             document.getElementById('modalAge').textContent = data.age;
             document.getElementById('modalChurch').textContent = data.church_name;
-            document.getElementById('modalBirthDate').textContent = data.birth_date;
+            document.getElementById('modalZone').textContent = data.zone_name || 'Not Assigned';
             document.getElementById('modalGender').textContent = data.gender || 'Not Specified';
             document.getElementById('modalRegDate').textContent = "Registered on " + data.registration_date;
             
@@ -469,14 +603,20 @@ function editRegistration(id) {
         .then(data => {
             document.getElementById('editFirstName').value = data.first_name;
             document.getElementById('editLastName').value = data.last_name;
-            document.getElementById('editBirthDate').value = data.birth_date;
+            document.getElementById('editAge').value = data.age;
             document.getElementById('editGender').value = data.gender || '';
+            
+            const zoneSelect = document.getElementById('editZoneId');
+            if (data.zone_id) {
+                zoneSelect.value = data.zone_id;
+            } else {
+                zoneSelect.value = 'none';
+            }
             
             const churchSelect = document.getElementById('editChurchId');
             const otherDiv = document.getElementById('edit_other_church_div');
             const otherInput = document.getElementById('editChurchName');
             
-            // Try to find the church in the list
             let found = false;
             for (let i = 0; i < churchSelect.options.length; i++) {
                 if (churchSelect.options[i].text === data.church_name) {

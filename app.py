@@ -1,26 +1,42 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, send_file, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_wtf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import pandas as pd
 import io
-import hashlib
 import os
+import logging
+import threading
 
 app = Flask(__name__)
 
 # Configuration
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-this-in-production')
+csrf = CSRFProtect(app)
+limiter = Limiter(key_func=get_remote_address, app=app, default_limits=["200 per day", "50 per hour"])
+
+# Logging
+if not app.debug:
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+else:
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
 # Database configuration
+basedir = os.path.abspath(os.path.dirname(__file__))
 database_url = os.environ.get('DATABASE_URL')
 
 # Fallback to local SQLite if environment variable is missing or external DB is blocked
 if not database_url:
-    database_url = 'sqlite:///registrations.db'
+    database_url = f'sqlite:///{os.path.join(basedir, "instance", "registrations.db")}'
 elif 'supabase.co' in database_url:
     # Supabase requires SSL and specific pooling, but free PythonAnywhere blocks port 5432
-    database_url = 'sqlite:///registrations.db'
+    database_url = f'sqlite:///{os.path.join(basedir, "instance", "registrations.db")}'
+else:
+    database_url = f'sqlite:///{os.path.join(basedir, "instance", "registrations.db")}'
 
 # Supabase requires SSL and connection pooling
 if 'supabase.co' in database_url and 'sslmode' not in database_url:
@@ -48,10 +64,14 @@ class Admin(UserMixin, db.Model):
     password_hash = db.Column(db.String(200), nullable=False)
     
     def set_password(self, password):
-        self.password_hash = hashlib.sha256(password.encode()).hexdigest()
+        self.password_hash = generate_password_hash(password)
     
     def check_password(self, password):
-        return self.password_hash == hashlib.sha256(password.encode()).hexdigest()
+        return check_password_hash(self.password_hash, password)
+
+class Zone(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), unique=True, nullable=False)
 
 class Church(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -64,70 +84,122 @@ class Registration(db.Model):
     last_name = db.Column(db.String(100), nullable=False)
     middle_name = db.Column(db.String(100), nullable=True)
     gender = db.Column(db.String(10), nullable=False, server_default='Not Specified')
-    birth_date = db.Column(db.Date, nullable=False)
     age = db.Column(db.Integer, nullable=False)
     church_name = db.Column(db.String(200), nullable=False)
     church_id = db.Column(db.Integer, db.ForeignKey('church.id'), nullable=True)
+    zone_id = db.Column(db.Integer, db.ForeignKey('zone.id'), nullable=True)
     registration_code = db.Column(db.String(50), unique=True, nullable=False)
     registration_date = db.Column(db.DateTime, default=datetime.utcnow)
     
-    def calculate_age(self):
-        today = datetime.today()
-        return today.year - self.birth_date.year - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))
+    @property
+    def zone_name(self):
+        if self.zone_id:
+            zone = db.session.get(Zone, self.zone_id)
+            if zone:
+                return zone.name
+        return ''
 
 def generate_registration_code():
-    last_reg = Registration.query.order_by(Registration.id.desc()).first()
-    if last_reg:
-        last_num = int(last_reg.registration_code.split('-')[-1])
-        new_num = last_num + 1
-    else:
-        new_num = 1
-    return f"REG-{new_num:04d}"
+    with threading.Lock():
+        last_reg = Registration.query.order_by(Registration.id.desc()).first()
+        if last_reg:
+            last_num = int(last_reg.registration_code.split('-')[-1])
+            new_num = last_num + 1
+        else:
+            new_num = 1
+        return f"REG-{new_num:04d}"
 
 @login_manager.user_loader
 def load_user(user_id):
-    return Admin.query.get(int(user_id))
+    return db.session.get(Admin, int(user_id))
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/register', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def register():
     churches = Church.query.order_by(Church.name).all()
+    zones = Zone.query.order_by(Zone.name).all()
     
     if request.method == 'POST':
         data = request.form
-        birth_date = datetime.strptime(data['birth_date'], '%Y-%m-%d').date()
         
+        zone_id = data.get('zone_id')
+        first_name = data.get('first_name', '').strip()
+        last_name = data.get('last_name', '').strip()
+        middle_name = data.get('middle_name', '').strip()
+        gender = data.get('gender', '')
+        age_str = data.get('age', '')
         church_id = data.get('church_id')
-        church_name = ''
-        if church_id:
-            church = Church.query.get(int(church_id))
-            if church:
-                church_name = church.name
         
-        reg = Registration(
-            first_name=data['first_name'],
-            last_name=data['last_name'],
-            middle_name=data.get('middle_name', ''),
-            gender=data.get('gender', 'Not Specified'),
-            birth_date=birth_date,
-            age=0,
-            church_name=church_name,
-            church_id=int(church_id) if church_id else None,
-            registration_code=generate_registration_code()
-        )
-        reg.age = reg.calculate_age()
+        errors = []
         
-        db.session.add(reg)
-        db.session.commit()
+        if not first_name or not first_name.replace(' ', '').isalpha():
+            errors.append('First name must contain only letters')
         
-        return render_template('success.html', registration=reg)
+        if not last_name or not last_name.replace(' ', '').isalpha():
+            errors.append('Last name must contain only letters')
+        
+        if middle_name and not middle_name.replace(' ', '').isalpha():
+            errors.append('Middle name must contain only letters')
+        
+        if gender not in ['Male', 'Female']:
+            errors.append('Gender must be Male or Female')
+        
+        age = None
+        if not age_str:
+            errors.append('Age is required')
+        else:
+            try:
+                age = int(age_str)
+                if age < 0 or age > 120:
+                    errors.append('Invalid age')
+            except ValueError:
+                errors.append('Age must be a number')
+        
+        if not church_id:
+            errors.append('Church fellowship is required')
+        
+        if errors:
+            for error in errors:
+                flash(error, 'danger')
+            return render_template('register.html', churches=churches, zones=zones)
+        
+        try:
+            church_name = ''
+            if church_id:
+                church = db.session.get(Church, int(church_id))
+                if church:
+                    church_name = church.name
+            
+            reg = Registration(
+                first_name=first_name,
+                last_name=last_name,
+                middle_name=middle_name,
+                gender=gender,
+                age=age,
+                church_name=church_name,
+                church_id=int(church_id) if church_id else None,
+                zone_id=int(zone_id) if zone_id else None,
+                registration_code=generate_registration_code()
+            )
+            
+            db.session.add(reg)
+            db.session.commit()
+            
+            return render_template('success.html', registration=reg)
+        except Exception as e:
+            db.session.rollback()
+            logging.error(f'Registration error: {str(e)}')
+            flash('An error occurred during registration. Please try again.', 'danger')
+            return render_template('register.html', churches=churches, zones=zones)
     
-    return render_template('register.html', churches=churches)
+    return render_template('register.html', churches=churches, zones=zones)
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
 def login():
     if request.method == 'POST':
         username = request.form['username']
@@ -152,6 +224,9 @@ def logout():
 @app.route('/admin')
 @login_required
 def admin():
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    
     registrations = Registration.query
     search = request.args.get('search', '')
     church_filter = request.args.get('church', '')
@@ -175,13 +250,15 @@ def admin():
     if date_to:
         registrations = registrations.filter(Registration.registration_date <= datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1))
     
-    registrations = registrations.order_by(Registration.registration_date.desc()).all()
+    registrations = registrations.order_by(Registration.registration_date.desc())
+    pagination = registrations.paginate(page=page, per_page=per_page, error_out=False)
+    registrations = pagination.items
     
     churches = db.session.query(Registration.church_name).distinct().all()
     churches = [c[0] for c in churches]
     
     total = Registration.query.count()
-    today = Registration.query.filter(Registration.registration_date >= datetime.now().date()).count()
+    today = Registration.query.filter(Registration.registration_date >= datetime.combine(datetime.now().date(), datetime.min.time())).count()
     
     age_groups = {
         '0-18': Registration.query.filter(Registration.age <= 18).count(),
@@ -191,9 +268,10 @@ def admin():
     }
     
     all_churches = Church.query.order_by(Church.name).all()
+    all_zones = Zone.query.order_by(Zone.name).all()
     
     return render_template('admin.html', 
-                         registrations=registrations, 
+                         registrations=registrations,
                          churches=churches,
                          total=total,
                          today=today,
@@ -202,13 +280,19 @@ def admin():
                          church_filter=church_filter,
                          date_from=date_from,
                          date_to=date_to,
-                         all_churches=all_churches)
+                         all_churches=all_churches,
+                         all_zones=all_zones,
+                         pagination=pagination)
 
 @app.route('/admin/church/add', methods=['POST'])
 @login_required
 def add_church():
-    name = request.form.get('church_name')
-    if name:
+    try:
+        name = request.form.get('church_name', '').strip()
+        if not name:
+            flash('Church name is required', 'warning')
+            return redirect(url_for('admin'))
+        
         existing = Church.query.filter_by(name=name).first()
         if not existing:
             church = Church(name=name)
@@ -217,30 +301,116 @@ def add_church():
             flash('Church added successfully', 'success')
         else:
             flash('Church already exists', 'warning')
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f'Add church error: {str(e)}')
+        flash('An error occurred. Please try again.', 'danger')
+    
     return redirect(url_for('admin'))
 
 @app.route('/admin/church/<int:id>/delete')
 @login_required
 def delete_church(id):
-    church = Church.query.get_or_404(id)
-    db.session.delete(church)
-    db.session.commit()
-    flash('Church deleted successfully', 'success')
+    try:
+        church = db.session.get(Church, id)
+        if church:
+            db.session.delete(church)
+            db.session.commit()
+            flash('Church deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f'Delete church error: {str(e)}')
+        flash('An error occurred. Please try again.', 'danger')
+    
+    return redirect(url_for('admin'))
+
+@app.route('/admin/zone/add', methods=['POST'])
+@login_required
+def add_zone():
+    try:
+        name = request.form.get('zone_name', '').strip()
+        if not name:
+            flash('Zone name is required', 'warning')
+            return redirect(url_for('admin'))
+        
+        existing = Zone.query.filter_by(name=name).first()
+        if not existing:
+            zone = Zone(name=name)
+            db.session.add(zone)
+            db.session.commit()
+            flash('Zone added successfully', 'success')
+        else:
+            flash('Zone already exists', 'warning')
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f'Add zone error: {str(e)}')
+        flash('An error occurred. Please try again.', 'danger')
+    
+    return redirect(url_for('admin'))
+
+@app.route('/admin/zone/<int:id>/edit', methods=['POST'])
+@login_required
+def edit_zone(id):
+    try:
+        zone = db.session.get(Zone, id)
+        if not zone:
+            flash('Zone not found', 'danger')
+            return redirect(url_for('admin'))
+        
+        new_name = request.form.get('zone_name', '').strip()
+        if not new_name:
+            flash('Zone name is required', 'warning')
+            return redirect(url_for('admin'))
+        
+        existing = Zone.query.filter(Zone.name == new_name, Zone.id != id).first()
+        if existing:
+            flash('Zone name already exists', 'warning')
+        else:
+            zone.name = new_name
+            db.session.commit()
+            flash('Zone updated successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f'Edit zone error: {str(e)}')
+        flash('An error occurred. Please try again.', 'danger')
+    
+    return redirect(url_for('admin'))
+
+@app.route('/admin/zone/<int:id>/delete')
+@login_required
+def delete_zone(id):
+    try:
+        zone = db.session.get(Zone, id)
+        if zone:
+            db.session.delete(zone)
+            db.session.commit()
+            flash('Zone deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f'Delete zone error: {str(e)}')
+        flash('An error occurred. Please try again.', 'danger')
+    
     return redirect(url_for('admin'))
 
 @app.route('/admin/registration/<int:id>')
 @login_required
 def get_registration(id):
     reg = Registration.query.get_or_404(id)
+    zone_name = ''
+    if reg.zone_id:
+        zone = db.session.get(Zone, reg.zone_id)
+        if zone:
+            zone_name = zone.name
     return jsonify({
         'id': reg.id,
         'first_name': reg.first_name,
         'last_name': reg.last_name,
         'middle_name': reg.middle_name,
         'gender': reg.gender,
-        'birth_date': reg.birth_date.strftime('%Y-%m-%d'),
         'age': reg.age,
         'church_name': reg.church_name,
+        'zone_name': zone_name,
+        'zone_id': reg.zone_id,
         'registration_code': reg.registration_code,
         'registration_date': reg.registration_date.strftime('%Y-%m-%d %H:%M:%S')
     })
@@ -248,79 +418,124 @@ def get_registration(id):
 @app.route('/admin/registration/<int:id>/edit', methods=['POST'])
 @login_required
 def edit_registration(id):
-    reg = Registration.query.get_or_404(id)
-    data = request.form
+    try:
+        reg = db.session.get(Registration, id)
+        if not reg:
+            flash('Registration not found', 'danger')
+            return redirect(url_for('admin'))
+        
+        data = request.form
+        
+        # Validation
+        first_name = data.get('first_name', '').strip()
+        last_name = data.get('last_name', '').strip()
+        
+        if not first_name or not first_name.replace(' ', '').isalpha():
+            flash('First name must contain only letters', 'danger')
+            return redirect(url_for('admin'))
+        
+        if not last_name or not last_name.replace(' ', '').isalpha():
+            flash('Last name must contain only letters', 'danger')
+            return redirect(url_for('admin'))
+        
+        reg.first_name = first_name
+        reg.last_name = last_name
+        reg.middle_name = data.get('middle_name', '').strip()
+        reg.gender = data.get('gender', reg.gender)
+        
+        age_str = data.get('age', '')
+        if age_str:
+            try:
+                age_val = int(age_str)
+                if 0 <= age_val <= 120:
+                    reg.age = age_val
+            except ValueError:
+                pass
+        
+        zone_id = data.get('zone_id')
+        if zone_id and zone_id != 'none':
+            reg.zone_id = int(zone_id)
+        else:
+            reg.zone_id = None
+        
+        church_id = data.get('church_id')
+        if church_id:
+            church = db.session.get(Church, int(church_id))
+            if church:
+                reg.church_name = church.name
+                reg.church_id = church.id
+        else:
+            reg.church_name = data.get('church_name', reg.church_name)
+            reg.church_id = None
+        
+        db.session.commit()
+        flash('Registration updated successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f'Edit registration error: {str(e)}')
+        flash('An error occurred. Please try again.', 'danger')
     
-    reg.first_name = data['first_name']
-    reg.last_name = data['last_name']
-    reg.middle_name = data.get('middle_name', '')
-    reg.gender = data.get('gender', reg.gender)
-    reg.birth_date = datetime.strptime(data['birth_date'], '%Y-%m-%d').date()
-    reg.age = reg.calculate_age()
-    
-    church_id = data.get('church_id')
-    if church_id:
-        church = Church.query.get(int(church_id))
-        if church:
-            reg.church_name = church.name
-            reg.church_id = church.id
-    else:
-        reg.church_name = data.get('church_name', reg.church_name)
-        reg.church_id = None
-    
-    db.session.commit()
-    flash('Registration updated successfully', 'success')
     return redirect(url_for('admin'))
 
 @app.route('/admin/registration/<int:id>/delete', methods=['GET', 'POST'])
 @login_required
 def delete_registration(id):
-    reg = Registration.query.get_or_404(id)
-    db.session.delete(reg)
-    db.session.commit()
-    flash('Registration deleted successfully', 'success')
+    try:
+        reg = db.session.get(Registration, id)
+        if reg:
+            db.session.delete(reg)
+            db.session.commit()
+            flash('Registration deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f'Delete registration error: {str(e)}')
+        flash('An error occurred. Please try again.', 'danger')
+    
     return redirect(url_for('admin'))
-
-@app.route('/api/calculate-age', methods=['POST'])
-def calculate_age():
-    birth_date = datetime.strptime(request.json['birth_date'], '%Y-%m-%d').date()
-    today = datetime.today()
-    age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-    return jsonify({'age': age})
 
 @app.route('/export')
 @login_required
 def export_excel():
-    registrations = Registration.query.all()
-    
-    data = []
-    for reg in registrations:
-        data.append({
-            'Registration Code': reg.registration_code,
-            'First Name': reg.first_name,
-            'Last Name': reg.last_name,
-            'Middle Name': reg.middle_name,
-            'Gender': reg.gender,
-            'Birth Date': reg.birth_date.strftime('%Y-%m-%d'),
-            'Age': reg.age,
-            'Church Name': reg.church_name,
-            'Registration Date': reg.registration_date.strftime('%Y-%m-%d %H:%M:%S')
-        })
-    
-    df = pd.DataFrame(data)
-    
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, sheet_name='Registrations', index=False)
-    
-    output.seek(0)
-    
-    return send_file(
-        output,
-        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        as_attachment=True,
-        download_name=f'registrations_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-    )
+    try:
+        registrations = Registration.query.all()
+        
+        data = []
+        for reg in registrations:
+            zone_name = ''
+            if reg.zone_id:
+                zone = db.session.get(Zone, reg.zone_id)
+                if zone:
+                    zone_name = zone.name
+            data.append({
+                'Registration Code': reg.registration_code,
+                'First Name': reg.first_name,
+                'Last Name': reg.last_name,
+                'Middle Name': reg.middle_name,
+                'Gender': reg.gender,
+                'Age': reg.age,
+                'Church Name': reg.church_name,
+                'Zone': zone_name,
+                'Registration Date': reg.registration_date.strftime('%Y-%m-%d %H:%M:%S')
+            })
+        
+        df = pd.DataFrame(data)
+        
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Registrations', index=False)
+        
+        output.seek(0)
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=f'registrations_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+        )
+    except Exception as e:
+        logging.error(f'Export error: {str(e)}')
+        flash('An error occurred during export. Please try again.', 'danger')
+        return redirect(url_for('admin'))
 
 if __name__ == '__main__':
     with app.app_context():
@@ -337,6 +552,13 @@ if __name__ == '__main__':
             if not Church.query.filter_by(name=church_name).first():
                 church = Church(name=church_name)
                 db.session.add(church)
+        
+        # Pre-populate zones
+        default_zones = ['Central Zone', 'Eastern Zone', 'Western Zone', 'Mother Church']
+        for zone_name in default_zones:
+            if not Zone.query.filter_by(name=zone_name).first():
+                zone = Zone(name=zone_name)
+                db.session.add(zone)
         
         db.session.commit()
     

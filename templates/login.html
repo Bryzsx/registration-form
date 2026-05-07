@@ -16,6 +16,7 @@
                 </div>
                 
                 <form method="POST" action="{{ url_for('login') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <!-- Username Field -->
                     <div class="mb-4">
                         <label for="username" class="form-label d-flex justify-content-between">
