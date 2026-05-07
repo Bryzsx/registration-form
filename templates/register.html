@@ -53,17 +53,22 @@
                         </div>
                     </div>
                     
-                        <div class="mb-5">
-                            <label for="church_id" class="form-label">Church Location</label>
+                        <div class="mb-4 position-relative">
+                            <label for="church-search" class="form-label">Church Location</label>
                             <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-house-door"></i></span>
-                                <select class="form-select border-start-0" id="church_id" name="church_id" required>
-                                    <option value="" selected disabled>Select your church</option>
-                                    {% for church in churches %}
-                                        <option value="{{ church.id }}">{{ church.name }}</option>
-                                    {% endfor %}
-                                </select>
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control border-start-0" id="church-search" placeholder="Type to search church..." autocomplete="off" required>
+                                <button type="button" class="btn btn-outline-secondary d-none" id="clear-search" style="border-left: none;"><i class="bi bi-x"></i></button>
                             </div>
+                            <select class="d-none" id="church_id" name="church_id" required>
+                                <option value="" selected disabled>Select your church</option>
+                                {% for church in churches %}
+                                    <option value="{{ church.id }}">{{ church.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="list-group mt-1 shadow-sm d-none" id="church-list" style="max-height: 200px; overflow-y: auto; z-index: 1000;">
+                            </div>
+                            <input type="hidden" id="selected-church-id" name="church_id" required>
                         </div>
                     
                     <div class="d-grid pt-2">
@@ -86,4 +91,79 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+    const churches = [
+        {% for church in churches %}
+            { id: '{{ church.id }}', name: '{{ church.name }}' },
+        {% endfor %}
+    ];
+
+    const searchInput = document.getElementById('church-search');
+    const churchList = document.getElementById('church-list');
+    const clearBtn = document.getElementById('clear-search');
+    const selectedChurchId = document.getElementById('selected-church-id');
+
+    function renderList(items) {
+        churchList.innerHTML = '';
+        if (items.length === 0) {
+            churchList.classList.add('d-none');
+            return;
+        }
+        
+        churchList.classList.remove('d-none');
+        items.forEach(church => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'list-group-item list-group-item-action';
+            btn.textContent = church.name;
+            btn.onclick = () => {
+                searchInput.value = church.name;
+                selectedChurchId.value = church.id;
+                selectedChurchId.setAttribute('required', 'required');
+                churchList.classList.add('d-none');
+                clearBtn.classList.remove('d-none');
+                searchInput.classList.remove('is-invalid');
+            };
+            churchList.appendChild(btn);
+        });
+    }
+
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        clearBtn.classList.toggle('d-none', !query);
+        
+        if (query.length === 0) {
+            churchList.classList.add('d-none');
+            selectedChurchId.value = '';
+            selectedChurchId.removeAttribute('required');
+            return;
+        }
+
+        const filtered = churches.filter(c => c.name.toLowerCase().includes(query));
+        renderList(filtered);
+    });
+
+    clearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        selectedChurchId.value = '';
+        selectedChurchId.removeAttribute('required');
+        churchList.classList.add('d-none');
+        clearBtn.classList.add('d-none');
+        searchInput.focus();
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !churchList.contains(e.target)) {
+            churchList.classList.add('d-none');
+        }
+    });
+
+    document.querySelector('form').addEventListener('submit', (e) => {
+        if (!selectedChurchId.value) {
+            e.preventDefault();
+            searchInput.classList.add('is-invalid');
+            searchInput.focus();
+        }
+    });
+</script>
 {% endblock %}
