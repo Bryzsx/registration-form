@@ -1,24 +1,25 @@
 #!/usr/bin/env python3
 """
-Test script to register 1000 users with random data on the live site.
-Run with: python test_live_site.py
+Usage:
+  python test_live_site.py          # quick smoke test (5 users)
+  python test_live_site.py full     # full 1000-user test
+  python test_live_site.py local    # 1000-user test against localhost
 """
 import requests
-from datetime import datetime, timedelta
+import re
 import time
 import random
-import re
+import sys
 
-BASE_URL = 'https://nlcfregform.pythonanywhere.com'
+MODE = (sys.argv[1] if len(sys.argv) > 1 else 'quick').lower()
 
-# Dummy data for realistic testing
 FIRST_NAMES = [
     'John', 'Maria', 'Michael', 'Sarah', 'David', 'Emma', 'James', 'Olivia',
     'Robert', 'Sophia', 'William', 'Isabella', 'Joseph', 'Mia', 'Thomas',
     'Charlotte', 'Charles', 'Amelia', 'Christopher', 'Harper', 'Daniel',
     'Evelyn', 'Matthew', 'Abigail', 'Anthony', 'Emily', 'Mark', 'Elizabeth',
     'Donald', 'Ava', 'Steven', 'Madison', 'Paul', 'Scarlett', 'Andrew',
-    'Victoria', 'Joshua', 'Aria', 'Kenneth', 'Grace', 'Kevin', 'Chloe',
+    'Victoria', 'Joshua', 'Aria', 'Grace', 'Kevin', 'Chloe',
     'Brian', 'Camila', 'George', 'Penelope', 'Edward', 'Riley', 'Ronald',
     'Layla', 'Timothy', 'Lillian', 'Jason', 'Natalie', 'Jeffrey', 'Nora',
     'Ryan', 'Zoe', 'Jacob', 'Lily', 'Gary', 'Eleanor', 'Nicholas', 'Hannah',
@@ -39,108 +40,85 @@ LAST_NAMES = [
     'Cooper', 'Peterson', 'Bailey', 'Reed', 'Kelly', 'Howard', 'Ramos'
 ]
 
-MIDDLE_NAMES = ['', 'James', 'Marie', 'Lee', 'Ann', 'Ray', 'Louise', 'Joe', 'Mary', 'John', 'Patricia', 'Michael']
+if MODE == 'local':
+    BASE_URL = 'http://127.0.0.1:5000'
+    SECONDS_BETWEEN = 0.01
+else:
+    BASE_URL = 'https://nlcfregform.pythonanywhere.com'
+    SECONDS_BETWEEN = 0.5
 
-def get_churches(session):
-    """Get list of available churches from the register page"""
-    try:
-        response = session.get(BASE_URL + '/register', timeout=10)
-        churches = re.findall(r'<option value="(\d+)">([^<]+)</option>', response.text)
-        if churches:
-            return [(int(id), name) for id, name in churches if id.isdigit()]
-    except Exception as e:
-        print('  Error getting churches: ' + str(e))
-    return [(1, 'Default Church')]
+TOTAL = 1000 if MODE in ('full', 'local') else 5
 
-def generate_birth_date():
-    """Generate a random birth date for ages 1-80"""
-    age = random.randint(1, 80)
-    birth_date = datetime.now() - timedelta(days=365*age + random.randint(0, 364))
-    return birth_date.strftime('%Y-%m-%d'), age
+def get_churches(html):
+    matches = re.findall(r'<option value="(\d+)">([^<]+)</option>', html)
+    return [(int(id), name) for id, name in matches if id.isdigit()]
 
-def register_user(session, index, churches):
-    """Register a single user with random data"""
-    first_name = random.choice(FIRST_NAMES)
-    last_name = random.choice(LAST_NAMES)
+def register_user(session, churches):
+    first = random.choice(FIRST_NAMES)
+    last = random.choice(LAST_NAMES)
     gender = random.choice(['Male', 'Female'])
     age = random.randint(1, 80)
-    
-    church_id, church_name = random.choice(churches)
-    
+    church_id, _ = random.choice(churches)
+
     data = {
-        'first_name': first_name,
-        'last_name': last_name,
+        'first_name': first,
+        'last_name': last,
         'gender': gender,
         'age': str(age),
-        'church_id': str(church_id)
+        'church_id': str(church_id),
     }
-    
+
     try:
-        response = session.post(BASE_URL + '/register', data=data, allow_redirects=True, timeout=10)
-        if 'REG-' in response.text:
-            match = re.search(r'REG-\d{4}', response.text)
-            if match:
-                if index % 100 == 0:
-                    msg = '  User ' + str(index) + ': ' + first_name + ' ' + last_name
-                    msg += ' (Age ' + str(age) + ', ' + gender + ') - ' + match.group(0)
-                    print(msg)
-            else:
-                print('  User ' + str(index) + ': Registered but code not found')
-            return True
+        resp = session.post(BASE_URL + '/register', data=data, allow_redirects=True, timeout=15)
+        if 'REG-' in resp.text:
+            m = re.search(r'REG-\d{4}', resp.text)
+            code = m.group(0) if m else '?'
+            return True, (first, last, age, gender, code)
         else:
-            print('  User ' + str(index) + ': Failed - Status ' + str(response.status_code))
-            return False
+            return False, (f'HTTP_{resp.status_code}',)
     except Exception as e:
-        print('  User ' + str(index) + ': Error - ' + str(e))
-        return False
+        return False, (f'ERROR: {e}',)
 
 def main():
-    print('=' * 70)
-    print('Testing 1000 registrations with RANDOM data on live site')
-    print('Site: ' + BASE_URL)
-    print('Features: Random names, ages (1-80), genders, churches')
-    print('=' * 70)
-    
+    print(f'Mode: {MODE} | {BASE_URL} | Target: {TOTAL} users')
+
     session = requests.Session()
-    
-    print('\nFetching available churches...')
-    churches = get_churches(session)
-    church_names = [name for _, name in churches[:3]]
-    print('Found ' + str(len(churches)) + ' churches: ' + str(church_names) + '...')
-    
-    success_count = 0
-    failed_count = 0
-    
-    start_time = time.time()
-    
-    print('\nStarting registration process...\n')
-    
-    for i in range(1, 1001):
-        if i % 100 == 0:
-            elapsed = time.time() - start_time
-            msg = '\nProgress: ' + str(i) + '/1000 (10%) - Elapsed: '
-            msg += str(round(elapsed, 1)) + 's - Success: ' + str(success_count) + '\n'
-            print(msg)
-        
-        if register_user(session, i, churches):
-            success_count += 1
+    r = session.get(BASE_URL + '/register', timeout=15)
+    if r.status_code != 200:
+        print(f'FAILED: HTTP {r.status_code}'); return
+
+    churches = get_churches(r.text)
+    print(f'Churches: {len(churches)}\n')
+
+    success = 0
+    failed = 0
+    start = time.time()
+
+    for i in range(1, TOTAL + 1):
+        ok, info = register_user(session, churches)
+        if ok:
+            success += 1
         else:
-            failed_count += 1
-        
-        if i % 10 != 0:
-            time.sleep(0.8)
-        else:
-            time.sleep(1.5)
-    
-    elapsed = time.time() - start_time
-    print('\n' + '=' * 70)
-    msg = 'FINAL RESULTS: ' + str(success_count) + '/1000 successful, '
-    msg += str(failed_count) + ' failed'
-    print(msg)
-    msg = 'Total time: ' + str(round(elapsed, 1)) + ' seconds ('
-    msg += str(round(elapsed/60, 1)) + ' minutes)'
-    print(msg)
-    print('=' * 70)
+            failed += 1
+
+        if i % 100 == 0 or MODE == 'quick':
+            elapsed = time.time() - start
+            if ok:
+                print(f'[{i:>4}] {info[0]} {info[1]} (Age {info[2]}, {info[3]}) - {info[4]}')
+            else:
+                print(f'[{i:>4}] {info[0]}')
+
+        if SECONDS_BETWEEN > 0:
+            time.sleep(SECONDS_BETWEEN)
+
+    elapsed = time.time() - start
+    print(f'\n{"=" * 50}')
+    print(f'  SUCCESS: {success}/{TOTAL}')
+    print(f'  FAILED:  {failed}')
+    print(f'  TIME:    {elapsed:.1f}s ({elapsed/60:.1f}min)')
+    if elapsed > 0:
+        print(f'  RATE:    {success/(elapsed/60):.1f}/min')
+    print(f'{"=" * 50}')
 
 if __name__ == '__main__':
     main()

@@ -10,7 +10,6 @@ from app import app, db, Admin, Church, Registration
 def client():
     app.config['TESTING'] = True
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-    app.config['WTF_CSRF_ENABLED'] = False
     
     with app.test_client() as client:
         with app.app_context():
@@ -22,6 +21,10 @@ def client():
             # Create test church
             church = Church(name='Test Church')
             db.session.add(church)
+            # Create test zone
+            from app import Zone
+            zone = Zone(name='Test Zone')
+            db.session.add(zone)
             db.session.commit()
             yield client
             db.session.remove()
@@ -80,7 +83,43 @@ def test_valid_registration(client):
         'last_name': 'Doe',
         'gender': 'Male',
         'age': '26',
-        'church_id': '1'
+        'church_id': '1',
+        'zone_id': '1'
     }, follow_redirects=True)
     assert response.status_code == 200
     assert b'REG-' in response.data
+
+def test_form_persistence_on_error(client):
+    """Test form data persists on validation error"""
+    response = client.post('/register', data={
+        'first_name': '123',
+        'last_name': 'Doe',
+        'gender': 'Male',
+        'age': '',
+        'church_id': '1'
+    }, follow_redirects=True)
+    assert response.status_code == 200
+    assert b'Doe' in response.data
+
+def test_admin_delete_registration_post(client):
+    """Test admin can delete registration via POST"""
+    client.post('/login', data={
+        'username': 'testadmin',
+        'password': 'testpass'
+    })
+    reg_resp = client.post('/register', data={
+        'first_name': 'Delete',
+        'last_name': 'Test',
+        'gender': 'Male',
+        'age': '20',
+        'church_id': '1',
+        'zone_id': '1'
+    }, follow_redirects=True)
+    assert b'REG-' in reg_resp.data
+    
+    reg = Registration.query.filter_by(first_name='Delete').first()
+    assert reg is not None
+    resp = client.post(f'/admin/registration/{reg.id}/delete', follow_redirects=True)
+    assert resp.status_code == 200
+    deleted = Registration.query.filter_by(first_name='Delete').first()
+    assert deleted is None

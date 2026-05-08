@@ -13,16 +13,15 @@
                 </div>
                 
                 <form method="POST" action="{{ url_for('register') }}" class="needs-validation">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="row g-3 mb-4">
                         <div class="col-sm-6">
                             <label for="first_name" class="form-label">First Name</label>
-                            <input type="text" class="form-control" id="first_name" name="first_name" placeholder="John" required>
+                            <input type="text" class="form-control" id="first_name" name="first_name" placeholder="John" value="{{ data.get('first_name', '') }}" required>
                         </div>
                         
                         <div class="col-sm-6">
                             <label for="last_name" class="form-label">Last Name</label>
-                            <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Doe" required>
+                            <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Doe" value="{{ data.get('last_name', '') }}" required>
                         </div>
                     </div>
                     
@@ -31,8 +30,8 @@
                             <label for="gender" class="form-label">Sex</label>
                             <select class="form-select" id="gender" name="gender" required>
                                 <option value="" selected disabled>Select gender</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
+                                <option value="Male" {{ 'selected' if data.get('gender') == 'Male' }}>Male</option>
+                                <option value="Female" {{ 'selected' if data.get('gender') == 'Female' }}>Female</option>
                             </select>
                         </div>
                     </div>
@@ -40,14 +39,14 @@
                     <div class="row g-3 mb-4">
                         <div class="col-sm-6">
                             <label for="age" class="form-label">Age</label>
-                            <input type="number" class="form-control" id="age" name="age" min="0" max="120" placeholder="Enter your age" required>
+                            <input type="number" class="form-control" id="age" name="age" min="0" max="120" placeholder="Enter your age" value="{{ data.get('age', '') }}" required>
                         </div>
                         <div class="col-sm-6">
                             <label for="zone_id" class="form-label">Zone</label>
                             <select class="form-select" id="zone_id" name="zone_id" required>
                                 <option value="" selected disabled>Select your zone</option>
                                 {% for zone in zones %}
-                                    <option value="{{ zone.id }}">{{ zone.name }}</option>
+                                    <option value="{{ zone.id }}" {{ 'selected' if data.get('zone_id') == zone.id|string }}>{{ zone.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>

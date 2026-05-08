@@ -1,23 +1,17 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, send_file, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from flask_wtf import CSRFProtect
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import pandas as pd
 import io
 import os
 import logging
-import threading
 
 app = Flask(__name__)
 
 # Configuration
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-change-this-in-production')
-csrf = CSRFProtect(app)
-limiter = Limiter(key_func=get_remote_address, app=app)
 
 # Logging
 if not app.debug:
@@ -29,31 +23,29 @@ else:
 basedir = os.path.abspath(os.path.dirname(__file__))
 database_url = os.environ.get('DATABASE_URL')
 
-# Fallback to local SQLite if environment variable is missing or external DB is blocked
-if not database_url:
-    database_url = f'sqlite:///{os.path.join(basedir, "instance", "registrations.db")}'
-elif 'supabase.co' in database_url:
-    # Supabase requires SSL and specific pooling, but free PythonAnywhere blocks port 5432
-    database_url = f'sqlite:///{os.path.join(basedir, "instance", "registrations.db")}'
-else:
-    database_url = f'sqlite:///{os.path.join(basedir, "instance", "registrations.db")}'
-
-# Supabase requires SSL and connection pooling
-if 'supabase.co' in database_url and 'sslmode' not in database_url:
-    database_url += '?sslmode=require'
-
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-
-# Connection pooling for Supabase (3000 users)
-if 'supabase.co' in database_url:
+if database_url and ('postgres' in database_url or 'supabase' in database_url):
+    if 'sslmode' not in database_url:
+        database_url += '?sslmode=require'
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         'pool_size': 10,
         'max_overflow': 20,
         'pool_recycle': 280,
         'pool_pre_ping': True,
     }
+else:
+    database_url = f'sqlite:///{os.path.join(basedir, "instance", "registrations.db")}'
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
 db = SQLAlchemy(app)
+
+# SQLite performance pragmas — WAL mode for concurrent reads/writes
+if 'sqlite' in app.config['SQLALCHEMY_DATABASE_URI']:
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'connect_args': {'check_same_thread': False},
+        'pool_pre_ping': True,
+    }
+
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message_category = 'info'
@@ -79,6 +71,10 @@ class Church(db.Model):
     registrations = db.relationship('Registration', backref='church', lazy=True)
 
 class Registration(db.Model):
+    __table_args__ = (
+        db.Index('idx_registration_date', 'registration_date'),
+        db.Index('idx_church_name', 'church_name'),
+    )
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(100), nullable=False)
     last_name = db.Column(db.String(100), nullable=False)
@@ -99,14 +95,7 @@ class Registration(db.Model):
         return ''
 
 def generate_registration_code():
-    with threading.Lock():
-        last_reg = Registration.query.order_by(Registration.id.desc()).first()
-        if last_reg:
-            last_num = int(last_reg.registration_code.split('-')[-1])
-            new_num = last_num + 1
-        else:
-            new_num = 1
-        return f"REG-{new_num:04d}"
+    return None  # Set after flush in the route
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -117,7 +106,6 @@ def index():
     return render_template('index.html')
 
 @app.route('/register', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
 def register():
     churches = Church.query.order_by(Church.name).all()
     zones = Zone.query.order_by(Zone.name).all()
@@ -160,7 +148,7 @@ def register():
         if errors:
             for error in errors:
                 flash(error, 'danger')
-            return render_template('register.html', churches=churches, zones=zones)
+            return render_template('register.html', churches=churches, zones=zones, data=data)
         
         try:
             church_name = ''
@@ -177,10 +165,12 @@ def register():
                 church_name=church_name,
                 church_id=int(church_id) if church_id else None,
                 zone_id=int(zone_id) if zone_id else None,
-                registration_code=generate_registration_code()
+                registration_code=''
             )
             
             db.session.add(reg)
+            db.session.flush()
+            reg.registration_code = f"REG-{reg.id:04d}"
             db.session.commit()
             
             return render_template('success.html', registration=reg)
@@ -188,12 +178,11 @@ def register():
             db.session.rollback()
             logging.error(f'Registration error: {str(e)}')
             flash('An error occurred during registration. Please try again.', 'danger')
-            return render_template('register.html', churches=churches, zones=zones)
+            return render_template('register.html', churches=churches, zones=zones, data=data)
     
-    return render_template('register.html', churches=churches, zones=zones)
+    return render_template('register.html', churches=churches, zones=zones, data={})
 
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("10 per minute")
 def login():
     if request.method == 'POST':
         username = request.form['username']
@@ -254,15 +243,23 @@ def admin():
     total = Registration.query.count()
     today = Registration.query.filter(Registration.registration_date >= datetime.combine(datetime.now().date(), datetime.min.time())).count()
     
-    age_groups = {
-        '0-18': Registration.query.filter(Registration.age <= 18).count(),
-        '19-30': Registration.query.filter(Registration.age.between(19, 30)).count(),
-        '31-50': Registration.query.filter(Registration.age.between(31, 50)).count(),
-        '51+': Registration.query.filter(Registration.age > 50).count()
-    }
+    age_counts = db.session.query(
+        db.case((Registration.age <= 18, '0-18'),
+                (Registration.age.between(19, 30), '19-30'),
+                (Registration.age.between(31, 50), '31-50'),
+                else_='51+').label('group'),
+        db.func.count(Registration.id)
+    ).group_by('group').all()
+    age_groups = {'0-18': 0, '19-30': 0, '31-50': 0, '51+': 0}
+    for group, count in age_counts:
+        age_groups[group] = count
     
     all_churches = Church.query.order_by(Church.name).all()
     all_zones = Zone.query.order_by(Zone.name).all()
+    zone_map = {z.id: z.name for z in all_zones}
+    
+    for reg in registrations:
+        reg._zone_name = zone_map.get(reg.zone_id, '') if reg.zone_id else ''
     
     return render_template('admin.html', 
                          registrations=registrations,
@@ -276,6 +273,7 @@ def admin():
                          date_to=date_to,
                          all_churches=all_churches,
                          all_zones=all_zones,
+                         zone_map=zone_map,
                          pagination=pagination)
 
 @app.route('/admin/church/add', methods=['POST'])
@@ -302,7 +300,7 @@ def add_church():
     
     return redirect(url_for('admin'))
 
-@app.route('/admin/church/<int:id>/delete')
+@app.route('/admin/church/<int:id>/delete', methods=['POST'])
 @login_required
 def delete_church(id):
     try:
@@ -370,7 +368,7 @@ def edit_zone(id):
     
     return redirect(url_for('admin'))
 
-@app.route('/admin/zone/<int:id>/delete')
+@app.route('/admin/zone/<int:id>/delete', methods=['POST'])
 @login_required
 def delete_zone(id):
     try:
@@ -390,11 +388,8 @@ def delete_zone(id):
 @login_required
 def get_registration(id):
     reg = Registration.query.get_or_404(id)
-    zone_name = ''
-    if reg.zone_id:
-        zone = db.session.get(Zone, reg.zone_id)
-        if zone:
-            zone_name = zone.name
+    all_zones = {z.id: z.name for z in Zone.query.all()}
+    zone_name = all_zones.get(reg.zone_id, '') if reg.zone_id else ''
     return jsonify({
         'id': reg.id,
         'first_name': reg.first_name,
@@ -469,7 +464,7 @@ def edit_registration(id):
     
     return redirect(url_for('admin'))
 
-@app.route('/admin/registration/<int:id>/delete', methods=['GET', 'POST'])
+@app.route('/admin/registration/<int:id>/delete', methods=['POST'])
 @login_required
 def delete_registration(id):
     try:
@@ -490,14 +485,11 @@ def delete_registration(id):
 def export_excel():
     try:
         registrations = Registration.query.all()
+        all_zones = {z.id: z.name for z in Zone.query.all()}
         
         data = []
         for reg in registrations:
-            zone_name = ''
-            if reg.zone_id:
-                zone = db.session.get(Zone, reg.zone_id)
-                if zone:
-                    zone_name = zone.name
+            zone_name = all_zones.get(reg.zone_id, '') if reg.zone_id else ''
             data.append({
                 'Registration Code': reg.registration_code,
                 'First Name': reg.first_name,
@@ -528,13 +520,48 @@ def export_excel():
         flash('An error occurred during export. Please try again.', 'danger')
         return redirect(url_for('admin'))
 
+@app.route('/health')
+def health():
+    return jsonify({'status': 'ok', 'timestamp': datetime.utcnow().isoformat()})
+
+@app.after_request
+def add_security_headers(response):
+    if request.path.startswith('/static/'):
+        response.cache_control.max_age = 3600
+        response.cache_control.public = True
+    return response
+
+@app.errorhandler(404)
+def not_found(e):
+    return render_template('base.html', title='404 - Page Not Found'), 404
+
+@app.errorhandler(500)
+def server_error(e):
+    return render_template('base.html', title='500 - Server Error'), 500
+
 with app.app_context():
+    from sqlalchemy import event as _event
+    
+    if 'sqlite' in app.config['SQLALCHEMY_DATABASE_URI']:
+        @_event.listens_for(db.engine, 'connect')
+        def set_sqlite_pragma(dbapi_connection, connection_record):
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA synchronous=NORMAL")
+            cursor.execute("PRAGMA cache_size=-64000")
+            cursor.execute("PRAGMA busy_timeout=5000")
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+    
     db.create_all()
     # Create admin if not exists
     if not Admin.query.filter_by(username='admin').first():
+        default_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
         admin = Admin(username='admin')
-        admin.set_password('admin123')
+        admin.set_password(default_password)
         db.session.add(admin)
+        if default_password == 'admin123':
+            logging.warning('Default admin password in use. Set ADMIN_PASSWORD env var in production.')
     
     # Pre-populate churches
     default_churches = ['NLC Main (Central Zone)', 'NLCF Gingoog (West Zone)']
@@ -554,4 +581,5 @@ with app.app_context():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    logging.info(f'Starting Flask dev server on port {port}')
+    app.run(host='0.0.0.0', port=port, threaded=True)

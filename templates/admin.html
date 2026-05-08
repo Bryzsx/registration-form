@@ -239,9 +239,12 @@
                                     <button class="btn btn-light action-btn edit-btn" data-reg-id="{{ reg.id }}" onclick="event.stopPropagation(); editRegistration('{{ reg.id }}')">
                                         <i class="bi bi-pencil text-primary"></i>
                                     </button>
-                                    <a href="{{ url_for('delete_registration', id=reg.id) }}" class="btn btn-light action-btn p-0 d-inline-flex" onclick="return handleRegistrationDelete(event, this.href, '{{ reg.registration_code }}', '{{ reg.first_name }} {{ reg.last_name }}')">
-                                        <i class="bi bi-trash text-danger"></i>
-                                    </a>
+                                    <form method="POST" action="{{ url_for('delete_registration', id=reg.id) }}" class="d-inline" onsubmit="return handleRegistrationDelete(event, '{{ reg.registration_code }}', '{{ reg.first_name }} {{ reg.last_name }}')">
+                                        
+                                        <button type="submit" class="btn btn-light action-btn p-0 d-inline-flex">
+                                            <i class="bi bi-trash text-danger"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -343,7 +346,7 @@
                     <div class="col-md-5 border-end">
                         <h6 class="fw-bold mb-3">Add New Church</h6>
                         <form method="POST" action="{{ url_for('add_church') }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            
                              <div class="mb-3">
                                 <label class="form-label">Church Name</label>
                                 <input type="text" class="form-control" name="church_name" placeholder="Enter name" required>
@@ -357,9 +360,12 @@
                             {% for church in all_churches %}
                             <div class="list-group-item d-flex justify-content-between align-items-center p-3">
                                 <span class="fw-medium">{{ church.name }}</span>
-                                <a href="{{ url_for('delete_church', id=church.id) }}" class="btn btn-link text-danger p-0" onclick="return handleChurchDelete(event, this.href)">
-                                    <i class="bi bi-trash"></i>
-                                </a>
+                                <form method="POST" action="{{ url_for('delete_church', id=church.id) }}" class="d-inline" onsubmit="return handleSimpleDelete(event, 'church')">
+                                    
+                                    <button type="submit" class="btn btn-link text-danger p-0">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
                             </div>
                             {% endfor %}
                         </div>
@@ -383,7 +389,7 @@
                     <div class="col-md-5 border-end">
                         <h6 class="fw-bold mb-3">Add New Zone</h6>
                         <form method="POST" action="{{ url_for('add_zone') }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            
                              <div class="mb-3">
                                 <label class="form-label">Zone Name</label>
                                 <input type="text" class="form-control" name="zone_name" placeholder="Enter zone name" required>
@@ -401,9 +407,12 @@
                                     <button class="btn btn-link text-primary p-0" data-bs-toggle="modal" data-bs-target="#editZoneModal" onclick="openEditZone('{{ zone.id }}', '{{ zone.name }}')">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <a href="{{ url_for('delete_zone', id=zone.id) }}" class="btn btn-link text-danger p-0" onclick="return handleZoneDelete(event, this.href)">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
+                                    <form method="POST" action="{{ url_for('delete_zone', id=zone.id) }}" class="d-inline" onsubmit="return handleSimpleDelete(event, 'zone')">
+                                        
+                                        <button type="submit" class="btn btn-link text-danger p-0">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
                             {% endfor %}
@@ -424,7 +433,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="editZoneForm" method="POST">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
                 <div class="modal-body p-4">
                     <div class="mb-3">
                         <label class="form-label">Zone Name</label>
@@ -449,7 +458,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
                 <form id="editForm" method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
                      <div class="modal-body p-4">
                     <div class="row g-3">
                         <div class="col-6">
@@ -508,8 +517,9 @@
 
 {% block scripts %}
 <script>
-function handleRegistrationDelete(event, url, code, name) {
+function handleRegistrationDelete(event, code, name) {
     event.preventDefault();
+    const form = event.target;
     Swal.fire({
         title: `Delete ${name} (${code})?`,
         text: "This action cannot be undone.",
@@ -520,16 +530,17 @@ function handleRegistrationDelete(event, url, code, name) {
         confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
         if (result.isConfirmed) {
-            window.location.href = url;
+            form.submit();
         }
     });
     return false;
 }
 
-function handleChurchDelete(event, url) {
+function handleSimpleDelete(event, label) {
     event.preventDefault();
+    const form = event.target;
     Swal.fire({
-        title: 'Delete church?',
+        title: `Delete this ${label}?`,
         text: "This action cannot be undone.",
         icon: 'warning',
         showCancelButton: true,
@@ -538,25 +549,7 @@ function handleChurchDelete(event, url) {
         confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
         if (result.isConfirmed) {
-            window.location.href = url;
-        }
-    });
-    return false;
-}
-
-function handleZoneDelete(event, url) {
-    event.preventDefault();
-    Swal.fire({
-        title: 'Delete zone?',
-        text: "This action cannot be undone.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.location.href = url;
+            form.submit();
         }
     });
     return false;
