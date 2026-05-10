@@ -79,7 +79,7 @@ class Registration(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(100), nullable=False)
     last_name = db.Column(db.String(100), nullable=False)
-    gender = db.Column(db.String(10), nullable=False, server_default='Not Specified')
+    gender = db.Column(db.String(20), nullable=False, server_default='Not Specified')
     age = db.Column(db.Integer, nullable=False)
     church_name = db.Column(db.String(200), nullable=False)
     church_id = db.Column(db.Integer, db.ForeignKey('church.id'), nullable=True)
@@ -557,7 +557,7 @@ def init_database():
         
         db.create_all()
         try:
-            db.session.execute(db.text('ALTER TABLE registration ADD COLUMN IF NOT EXISTS gender VARCHAR(10) NOT NULL DEFAULT \'Not Specified\''))
+            db.session.execute(db.text('ALTER TABLE registration ADD COLUMN IF NOT EXISTS gender VARCHAR(20) NOT NULL DEFAULT \'Not Specified\''))
             db.session.commit()
         except Exception:
             db.session.rollback()
