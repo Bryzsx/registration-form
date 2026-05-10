@@ -178,7 +178,7 @@ def register():
         except Exception as e:
             db.session.rollback()
             logging.error(f'Registration error: {str(e)}')
-            flash(f'Error: {str(e)}', 'danger')
+            flash('An error occurred during registration. Please try again.', 'danger')
             return render_template('register.html', churches=churches, zones=zones, data=data)
     
     return render_template('register.html', churches=churches, zones=zones, data={})
@@ -558,6 +558,11 @@ def init_database():
         db.create_all()
         try:
             db.session.execute(db.text('ALTER TABLE registration ADD COLUMN IF NOT EXISTS gender VARCHAR(20) NOT NULL DEFAULT \'Not Specified\''))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+        try:
+            db.session.execute(db.text('ALTER TABLE registration ADD COLUMN IF NOT EXISTS zone_id INTEGER REFERENCES zone(id)'))
             db.session.commit()
         except Exception:
             db.session.rollback()
