@@ -177,7 +177,7 @@ def register():
         except Exception as e:
             db.session.rollback()
             logging.error(f'Registration error: {str(e)}')
-            flash(f'Error: {e}', 'danger')
+            flash('An error occurred during registration. Please try again.', 'danger')
             return render_template('register.html', churches=churches, zones=zones, data=data)
     
     return render_template('register.html', churches=churches, zones=zones, data={})
@@ -555,6 +555,11 @@ def init_database():
                 cursor.close()
         
         db.create_all()
+        try:
+            db.session.execute(db.text('ALTER TABLE registration ADD COLUMN IF NOT EXISTS gender VARCHAR(10) NOT NULL DEFAULT \'Not Specified\''))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
         if not Admin.query.filter_by(username='admin').first():
             default_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
             admin = Admin(username='admin')
