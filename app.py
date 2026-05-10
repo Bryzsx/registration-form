@@ -7,6 +7,7 @@ import pandas as pd
 import io
 import os
 import logging
+import uuid
 
 app = Flask(__name__)
 
@@ -123,11 +124,11 @@ def register():
         
         errors = []
         
-        if not first_name or not first_name.replace(' ', '').isalpha():
-            errors.append('First name must contain only letters')
+        if not first_name:
+            errors.append('First name is required')
         
-        if not last_name or not last_name.replace(' ', '').isalpha():
-            errors.append('Last name must contain only letters')
+        if not last_name:
+            errors.append('Last name is required')
         
         if gender not in ['Male', 'Female']:
             errors.append('Gender must be Male or Female')
@@ -138,8 +139,6 @@ def register():
         else:
             try:
                 age = int(age_str)
-                if age < 0 or age > 120:
-                    errors.append('Invalid age')
             except ValueError:
                 errors.append('Age must be a number')
         
@@ -166,7 +165,7 @@ def register():
                 church_name=church_name,
                 church_id=int(church_id) if church_id else None,
                 zone_id=int(zone_id) if zone_id else None,
-                registration_code=''
+                registration_code=str(uuid.uuid4())
             )
             
             db.session.add(reg)

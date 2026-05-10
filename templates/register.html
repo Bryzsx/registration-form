@@ -159,9 +159,10 @@
 
     document.querySelector('form').addEventListener('submit', (e) => {
         if (!selectedChurchId.value) {
-            e.preventDefault();
-            searchInput.classList.add('is-invalid');
-            searchInput.focus();
+            var firstChurch = document.querySelector('#church-select option:not([value=\"\"]):not([disabled])');
+            if (firstChurch) {
+                selectedChurchId.value = firstChurch.value;
+            }
         }
     });
 </script>
