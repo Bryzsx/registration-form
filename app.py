@@ -522,7 +522,15 @@ def export_excel():
 
 @app.route('/health')
 def health():
-    return jsonify({'status': 'ok', 'timestamp': datetime.utcnow().isoformat()})
+    db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', 'not set') or 'not set'
+    masked = db_uri[:30] + '...' if db_uri != 'not set' else 'not set'
+    return jsonify({
+        'status': 'ok',
+        'db_configured': bool(os.environ.get('DATABASE_URL')),
+        'db_uri_prefix': masked,
+        'db_initialized': _db_init_done,
+        'timestamp': datetime.utcnow().isoformat()
+    })
 
 @app.after_request
 def add_security_headers(response):
@@ -589,8 +597,11 @@ def ensure_db_init():
             init_database()
             _db_init_done = True
         except Exception as e:
-            logging.error(f"Database initialization failed: {e}")
-            return "Database is not configured. Please set DATABASE_URL environment variable.", 503
+            db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', 'not set')
+            masked = db_uri[:20] + '...' if db_uri != 'not set' else db_uri
+            msg = f"Database error. URI: {masked}. Details: {e}"
+            logging.error(msg)
+            return msg, 503
 
 try:
     init_database()
