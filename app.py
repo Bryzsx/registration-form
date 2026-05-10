@@ -523,7 +523,7 @@ def export_excel():
 
 @app.route('/health')
 def health():
-    return jsonify({'status': 'ok', 'timestamp': datetime.utcnow().isoformat()})
+    return jsonify({'status': 'ok', 'timestamp': datetime.utcnow().isoformat(), 'version': 2})
 
 @app.after_request
 def add_security_headers(response):
