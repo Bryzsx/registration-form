@@ -50,15 +50,23 @@ else:
 TOTAL = 1000 if MODE in ('full', 'local') else 5
 
 def get_churches(html):
-    matches = re.findall(r'<option value="(\d+)">([^<]+)</option>', html)
+    matches = re.findall(r'<option value="(\d+)"[^>]*>([^<]+)</option>', html)
     return [(int(id), name) for id, name in matches if id.isdigit()]
 
-def register_user(session, churches):
+def get_zones(html):
+    zone_section = re.search(r'id="zone_id"[^>]*>.*?</select>', html, re.DOTALL)
+    if zone_section:
+        matches = re.findall(r'<option value="(\d+)"[^>]*>([^<]+)</option>', zone_section.group(0))
+        return [(int(id), name) for id, name in matches if id.isdigit()]
+    return []
+
+def register_user(session, churches, zones):
     first = random.choice(FIRST_NAMES)
     last = random.choice(LAST_NAMES)
     gender = random.choice(['Male', 'Female'])
     age = random.randint(1, 80)
     church_id, _ = random.choice(churches)
+    zone_id, _ = random.choice(zones) if zones else (None, None)
 
     data = {
         'first_name': first,
@@ -66,6 +74,7 @@ def register_user(session, churches):
         'gender': gender,
         'age': str(age),
         'church_id': str(church_id),
+        'zone_id': str(zone_id) if zone_id else '',
     }
 
     try:
@@ -73,7 +82,8 @@ def register_user(session, churches):
         if 'REG-' in resp.text:
             m = re.search(r'REG-\d{4}', resp.text)
             code = m.group(0) if m else '?'
-            return True, (first, last, age, gender, code)
+            zone_name = dict(zones).get(zone_id, '') if zone_id else ''
+            return True, (first, last, age, gender, zone_name, code)
         else:
             return False, (f'HTTP_{resp.status_code}',)
     except Exception as e:
@@ -88,14 +98,15 @@ def main():
         print(f'FAILED: HTTP {r.status_code}'); return
 
     churches = get_churches(r.text)
-    print(f'Churches: {len(churches)}\n')
+    zones = get_zones(r.text)
+    print(f'Churches: {len(churches)}, Zones: {len(zones)}\n')
 
     success = 0
     failed = 0
     start = time.time()
 
     for i in range(1, TOTAL + 1):
-        ok, info = register_user(session, churches)
+        ok, info = register_user(session, churches, zones)
         if ok:
             success += 1
         else:
@@ -104,7 +115,7 @@ def main():
         if i % 100 == 0 or MODE == 'quick':
             elapsed = time.time() - start
             if ok:
-                print(f'[{i:>4}] {info[0]} {info[1]} (Age {info[2]}, {info[3]}) - {info[4]}')
+                print(f'[{i:>4}] {info[0]} {info[1]} ({info[4]}, Age {info[2]}, {info[3]}) - {info[5]}')
             else:
                 print(f'[{i:>4}] {info[0]}')
 
