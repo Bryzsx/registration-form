@@ -28,10 +28,11 @@ if database_url and ('postgres' in database_url or 'supabase' in database_url):
         database_url += '?sslmode=require'
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'pool_size': 10,
-        'max_overflow': 20,
-        'pool_recycle': 280,
+        'pool_size': 1,
+        'max_overflow': 0,
+        'pool_recycle': 60,
         'pool_pre_ping': True,
+        'pool_use_lifo': True,
     }
 else:
     database_url = f'sqlite:///{os.path.join(basedir, "instance", "registrations.db")}'
