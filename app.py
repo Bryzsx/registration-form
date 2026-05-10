@@ -539,64 +539,45 @@ def not_found(e):
 def server_error(e):
     return render_template('base.html', title='500 - Server Error'), 500
 
-def init_database():
-    with app.app_context():
-        from sqlalchemy import event as _event
-        
-        if 'sqlite' in app.config['SQLALCHEMY_DATABASE_URI']:
-            @_event.listens_for(db.engine, 'connect')
-            def set_sqlite_pragma(dbapi_connection, connection_record):
-                cursor = dbapi_connection.cursor()
-                cursor.execute("PRAGMA journal_mode=WAL")
-                cursor.execute("PRAGMA synchronous=NORMAL")
-                cursor.execute("PRAGMA cache_size=-64000")
-                cursor.execute("PRAGMA busy_timeout=5000")
-                cursor.execute("PRAGMA foreign_keys=ON")
-                cursor.close()
-        
-        db.create_all()
-        if not Admin.query.filter_by(username='admin').first():
-            default_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
-            admin = Admin(username='admin')
-            admin.set_password(default_password)
-            db.session.add(admin)
-            if default_password == 'admin123':
-                logging.warning('Default admin password in use. Set ADMIN_PASSWORD env var in production.')
-        
-        default_churches = ['NLC Main (Central Zone)', 'NLCF Gingoog (West Zone)']
-        for church_name in default_churches:
-            if not Church.query.filter_by(name=church_name).first():
-                church = Church(name=church_name)
-                db.session.add(church)
-        
-        default_zones = ['Central Zone', 'Eastern Zone', 'Western Zone', 'Mother Church']
-        for zone_name in default_zones:
-            if not Zone.query.filter_by(name=zone_name).first():
-                zone = Zone(name=zone_name)
-                db.session.add(zone)
-        
-        db.session.commit()
-
-_db_init_done = False
-
-@app.before_request
-def ensure_db_init():
-    global _db_init_done
-    if not request.endpoint or request.endpoint == 'health' or request.path.startswith('/static/'):
-        return
-    if not _db_init_done:
-        try:
-            init_database()
-            _db_init_done = True
-        except Exception as e:
-            logging.error(f"Database initialization failed: {e}")
-            return "Database is not configured. Please set DATABASE_URL environment variable.", 503
-
-try:
-    init_database()
-    _db_init_done = True
-except Exception as e:
-    logging.warning(f"DB init on startup failed (will retry on first request): {e}")
+with app.app_context():
+    from sqlalchemy import event as _event
+    
+    if 'sqlite' in app.config['SQLALCHEMY_DATABASE_URI']:
+        @_event.listens_for(db.engine, 'connect')
+        def set_sqlite_pragma(dbapi_connection, connection_record):
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA synchronous=NORMAL")
+            cursor.execute("PRAGMA cache_size=-64000")
+            cursor.execute("PRAGMA busy_timeout=5000")
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+    
+    db.create_all()
+    # Create admin if not exists
+    if not Admin.query.filter_by(username='admin').first():
+        default_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
+        admin = Admin(username='admin')
+        admin.set_password(default_password)
+        db.session.add(admin)
+        if default_password == 'admin123':
+            logging.warning('Default admin password in use. Set ADMIN_PASSWORD env var in production.')
+    
+    # Pre-populate churches
+    default_churches = ['NLC Main (Central Zone)', 'NLCF Gingoog (West Zone)']
+    for church_name in default_churches:
+        if not Church.query.filter_by(name=church_name).first():
+            church = Church(name=church_name)
+            db.session.add(church)
+    
+    # Pre-populate zones
+    default_zones = ['Central Zone', 'Eastern Zone', 'Western Zone', 'Mother Church']
+    for zone_name in default_zones:
+        if not Zone.query.filter_by(name=zone_name).first():
+            zone = Zone(name=zone_name)
+            db.session.add(zone)
+    
+    db.session.commit()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
