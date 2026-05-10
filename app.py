@@ -177,7 +177,7 @@ def register():
         except Exception as e:
             db.session.rollback()
             logging.error(f'Registration error: {str(e)}')
-            flash('An error occurred during registration. Please try again.', 'danger')
+            flash(f'Error: {e}', 'danger')
             return render_template('register.html', churches=churches, zones=zones, data=data)
     
     return render_template('register.html', churches=churches, zones=zones, data={})
