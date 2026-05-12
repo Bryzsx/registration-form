@@ -41,6 +41,7 @@
                 <div class="navbar-nav ms-auto gap-2">
                     <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}"
                         href="{{ url_for('index') }}">Home</a>
+                    <a class="nav-link" href="https://nlcf-website.vercel.app/" target="_blank" rel="noopener noreferrer">About Us</a>
                     {% if current_user.is_authenticated %}
                     <a class="nav-link {% if request.endpoint == 'admin' %}active{% endif %}"
                         href="{{ url_for('admin') }}">Dashboard</a>
